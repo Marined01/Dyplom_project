@@ -1,10 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% load static %}
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home page</title>
+    <link rel="stylesheet" href="{% static 'style_home.css' %}">
+
 </head>
 <body>
+<header>
+    <nav>
+        <ul>
+            <li><a href="{% url 'home' %}">Назад</a></li>
+            <li><a href="{% url 'profile' %}">Профіль</a></li>
+            <li><a href="{% url 'logout' %}">Вихід</a></li>
 
+        </ul>
+    </nav>
+</header>
+<h1>Запити на передачу ключа</h1>
+    {% if requests %}
+    {% for req in requests %}
+        <div class="container">
+            <div class="card">
+                <p><strong>Користувач:</strong> {{ req.from_user.name }} {{ req.from_user.surname }}</p>
+                <p><strong>Ключ:</strong> {{ req.key.auditory }}</p>
+                <p><strong>Час:</strong> {{ req.created_at }}</p>
+
+                <form method="post" action="{% url 'approve_transfer' req.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn">Підтвердити</button>
+                </form>
+                <form method="post" action="{% url 'reject_transfer' req.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn">Відхилити</button>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <p>Немає активних запитів на передачу.</p>
+{% endif %}
+
+
+<footer>
+    <p>&copy; 2025 Courework.</p>
+</footer>
 </body>
 </html>
