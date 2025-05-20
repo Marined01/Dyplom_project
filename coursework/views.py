@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from coursework.models import Key, User, Key_requests, Key_return_request
+from coursework.models import Key, User, Key_requests, Key_return_request, Key_transfer
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseRedirect
@@ -95,33 +95,87 @@ def put_key(request, key_id):
         messages.error(request, e)
     return redirect('home')
 
-
+# views.py
 @login_required
 def transfer_key(request, key_id):
-    try:
-        key = Key.objects.get(id=key_id)
-    except Key.DoesNotExist:
-        messages.error(request, 'Ключ не знайдено.')
-        return redirect('transfer_key')
+    key = get_object_or_404(Key, id=key_id)
+
+    if key.holder != request.user:
+        messages.error(request, "Ви не володієте цим ключем.")
+        return redirect('home')
 
     if request.method == 'POST':
         name = request.POST.get('name')
         surname = request.POST.get('surname')
+
         try:
             new_holder = User.objects.get(name=name, surname=surname)
         except User.DoesNotExist:
-            messages.error(request, 'Неправильні дані користувача, або не існує')
-            redirect('transfer_key')
+            messages.error(request, 'Користувача не знайдено.')
+            return redirect('transfer_key', key_id=key.id)
 
-        try:
-            key.transfer_key(new_holder)
-            messages.success(request, 'Ключ передано користувачу {user.name} {user.surname}')
-            return redirect('home')
-        except ValueError as e:
-            messages.error(request, str(e))
-            return redirect('transfer_key')
+        existing_request = Key_transfer.objects.filter(
+            from_user=request.user, key=key, is_approved=False,
+            created_at__gte=timezone.now() - timedelta(minutes=15)
+        ).first()
+        if existing_request:
+            messages.info(request, "Запит вже створено.")
+        else:
+            Key_transfer.objects.create(from_user=request.user, to_user=new_holder, key=key)
+            messages.success(request, "Запит на передачу ключа створено.")
 
-    return render(request, 'transfer_page.html')
+        return redirect('home')
+
+    return render(request, 'transfer_page.html', {'key': key})
+
+
+
+@login_required
+def my_transfer_requests(request):
+    requests = Key_transfer.objects.filter(
+        to_user=request.user,
+        is_approved=False,
+        is_expired=False,
+        created_at__gte=timezone.now() - timedelta(minutes=15)
+    ).select_related('from_user', 'to_user', 'key')
+
+    return render(request, 'transfer_request.html', {'requests': requests})
+
+@login_required
+def approve_transfer_request(request, request_id):
+    if request.method == 'POST':
+        transfer_request = get_object_or_404(Key_transfer, id=request_id)
+
+        if transfer_request.is_valid():
+            transfer_request.key.transfer_key(request.user)
+            transfer_request.is_approved = True
+            transfer_request.save()
+            messages.success(request, "Ключ передано вам.")
+        else:
+            transfer_request.is_expired = True
+            transfer_request.save()
+            messages.error(request, "Запит недійсний або протермінований.")
+
+        return redirect('home')
+
+@staff_member_required
+def reject_transfer_request(request, request_id):
+    transfer_request = get_object_or_404(Key_transfer, id=request_id)
+
+    if transfer_request.is_expired or transfer_request.is_approved:
+        messages.error(request, "Цей запит уже оброблено.")
+    else:
+        transfer_request.is_expired = True
+        transfer_request.save()
+
+        key = transfer_request.key
+        key.status = 'taken'
+        key.save()
+
+        messages.success(request, f"Запит на передачу ключа {key.auditory} відхилено.")
+
+    return redirect('admin_transfer_requests')
+
 
 @login_required
 def free_keys(request):
@@ -161,6 +215,7 @@ def take_key_request(request, key_id):
     existing_request = Key_requests.objects.filter(
         key=key,
         is_approved=False,
+        is_expired=False,
         created_at__gte=timezone.now() - timedelta(minutes=15)
     ).first()
 
@@ -184,20 +239,20 @@ def take_key_request(request, key_id):
 @login_required
 def put_key_request(request, key_id):
     key = get_object_or_404(Key, id=key_id)
-    if key.holder != request.user:
-        messages.error(request, "Ви не володієте цим ключем.")
-        return redirect('home')
 
     existing_request = Key_return_request.objects.filter(
+        user=request.user,
         key=key,
-        is_approved=False,
-        created_at__gte=timezone.now() - timedelta(minutes=15)
-    ).first()
+        is_expired=False,
+        is_approved=False
+    ).exists()
+
     if existing_request:
-        messages.info(request, "Запит на повернення вже створено.")
-    else:
-        Key_return_request.objects.create(user=request.user, key=key)
-        messages.success(request, "Запит на повернення ключа надіслано адміністратору.")
+        messages.error(request, "Ви вже подали запит на повернення цього ключа.")
+        return redirect('home')
+
+    Key_return_request.objects.create(user=request.user, key=key)
+    messages.success(request, "Запит на повернення ключа надіслано.")
     return redirect('home')
 
 def expire_old_requests():
@@ -225,7 +280,7 @@ def admin_key_request(request):
 
 @staff_member_required
 def admin_put_request(request):
-    expire_old_requests()
+    # expire_old_requests()
     active_put_request = Key_return_request.objects.filter(is_approved=False,
                                                            is_expired=False,
                                                            created_at__gte=timezone.now() - timedelta(minutes=15)).select_related('key', 'user')
@@ -266,7 +321,7 @@ def approve_return_request(request, request_id):
             return_request.save()
             messages.error(request, "Час дії запиту минув або вже оброблений.")
 
-    return redirect('admin_key_request')
+    return redirect('admin_put_request')
 
 @staff_member_required
 def reject_key_request(request, request_id):
@@ -283,20 +338,15 @@ def reject_key_request(request, request_id):
         messages.info(request, f"Запит на ключ {key.auditory} відхилено.")
     return redirect('home')
 
+
 @staff_member_required
 def reject_return_request(request, request_id):
     return_request = get_object_or_404(Key_return_request, id=request_id)
-    return_request.is_expired = True
-    return_request.save()
-    messages.info(request, "Запит на повернення ключа скасовано.")
-    return redirect('return_requests_list')
 
-# @staff_member_required
-# def admin_key_request(request):
-#     take_requests = Key_requests.objects.filter(is_approved=False, is_expired=False)
-#     return_requests = Key_return_request.objects.filter(is_approved=False, is_expired=False)
-#
-#     return render(request, 'admin_key_requests.html', {
-#         'take_requests': take_requests,
-#         'return_requests': return_requests
-#     })
+    if request.method == 'POST':
+        return_request.is_expired = True
+        return_request.save()
+
+        messages.success(request, f"Запит на повернення ключа {return_request.key.auditory} відхилено.")
+
+    return redirect('put_request')

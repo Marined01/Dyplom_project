@@ -15,6 +15,7 @@
             <li><a href="{% url 'free_keys' %}">Список вільних аудиторій</a></li>
             <li><a href="{% url 'profile' %}">Профіль</a></li>
             <li><a href="{% url 'logout' %}">Вихід</a></li>
+            <li><a href="{% url 'incoming_transfers' %}">Передавання</a></li>
             {% if user.is_staff %}
                 <li><a href="{% url 'key_request' %}">Запити на видачу</a></li>
                 <li><a href="{% url 'put_request' %}">Запити щоб покласти</a></li>
@@ -43,7 +44,7 @@
 {#                <p><strong>Статус:</strong> {{ key.get_status_display }}</p>#}
                 <p><strong>Час взяття:</strong> {{ key.take_key_time }}</p>
                 <a method="post" href="{% url 'put_key_request' key.id %}" class="btn">Покласти ключ</a>
-                <a method="post" href="{% url 'transfer_key' key.id %}" class="btn">Передати ключ</a>
+                <a method="post" href="{% url 'transfer_key' key.id%}" class="btn">Передати ключ</a>
 
             </div>
         </div>

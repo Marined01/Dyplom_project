@@ -13,28 +13,30 @@
                 <li><a href="{% url 'home' %}">Назад</a></li>
             </ul>
         </nav>
-    </header>
-    <h1>Запити на ключі</h1>
-
+    </header><h1>Запити на ключі</h1>
+{% if requests %}
     {% for req in requests %}
-        <div style="border: 1px solid #ccc; margin: 10px; padding: 10px;">
-            <p><strong>Користувач:</strong> {{ req.user.name }} {{req.user.surname}}</p>
-            <p><strong>Ключ:</strong> {{ req.key.auditory }}</p>
-            <p><strong>Час:</strong> {{ req.created_at }}</p>
+        <div class="container">
+            <div class="card">
+                <p><strong>Користувач:</strong> {{ req.user.name }} {{ req.user.surname }}</p>
+                <p><strong>Ключ:</strong> {{ req.key.auditory }}</p>
+                <p><strong>Час:</strong> {{ req.created_at }}</p>
 
-            <form method="post" action="{% url 'approve_put_request' req.id %}" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit">Підтвердити</button>
-            </form>
+                <form method="post" action="{% url 'approve_put_request' req.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn">Підтвердити</button>
+                </form>
 
-            <form method="post" action="{% url 'reject_put_request' req.id %}" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit">Відхилити</button>
-            </form>
+                <form method="post" action="{% url 'reject_put_request' req.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Відхилити</button>
+                </form>
+            </div>
         </div>
-    {% empty %}
-        <p>Немає активних запитів.</p>
     {% endfor %}
+{% else %}
+    <p>Немає активних запитів.</p>
+{% endif %}
 
 <footer>
     <p>&copy; 2025 Courework.</p>
