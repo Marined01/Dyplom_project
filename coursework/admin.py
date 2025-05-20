@@ -27,8 +27,4 @@ class UserAdmin(BaseUserAdmin):
         }),
     )
 
-# @admin.register(Key_requests)
-# class KeyRequestAdmin(admin.ModelAdmin):
-#     list_display = ('user', 'key', 'created_at', 'is_approved', 'is_expired')
-#     list_filter = ('is_approved', 'is_expired')
-#     search_fields = ('user__email', 'key__auditory')
+

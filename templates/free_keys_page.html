@@ -15,6 +15,7 @@
             </ul>
         </nav>
     </header>
+
     <h1>Вільні аудиторії</h1>
     {% if free_keys %}
         {% for key in free_keys %}
@@ -22,8 +23,7 @@
             <div class="container">
                 <div class="card">
                     <p><strong>Аудиторія:</strong> {{ key.auditory }}</p>
-                    <a method="post" href="{% url 'take_key' key.id %}" class="btn">Взяти ключ</a>
-
+                    <a method="post" href="{% url 'take_key_request' key.id %}" class="btn">Взяти ключ</a>
                 </div>
 
             </div>

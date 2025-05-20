@@ -16,13 +16,22 @@
             <li><a href="{% url 'profile' %}">Профіль</a></li>
             <li><a href="{% url 'logout' %}">Вихід</a></li>
             {% if user.is_staff %}
-                <li><a href="{% url 'manage_requests' %}">Адм. запити</a></li>
+                <li><a href="{% url 'key_request' %}">Запити на видачу</a></li>
+                <li><a href="{% url 'put_request' %}">Запити щоб покласти</a></li>
             {% endif %}
 
         </ul>
     </nav>
 </header>
-
+ {% if messages %}
+  <ul class="messages">
+    {% for message in messages %}
+      <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>
+        {{ message }}
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
 <h1>Ваші ключі:</h1>
 
 
@@ -33,7 +42,7 @@
                 <p><strong>Аудиторія:</strong> {{ key.auditory }}</p>
 {#                <p><strong>Статус:</strong> {{ key.get_status_display }}</p>#}
                 <p><strong>Час взяття:</strong> {{ key.take_key_time }}</p>
-                <a method="post" href="{% url 'put_key' key.id %}" class="btn">Покласти ключ</a>
+                <a method="post" href="{% url 'put_key_request' key.id %}" class="btn">Покласти ключ</a>
                 <a method="post" href="{% url 'transfer_key' key.id %}" class="btn">Передати ключ</a>
 
             </div>

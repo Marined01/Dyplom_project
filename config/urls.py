@@ -17,7 +17,6 @@ Including another URLconf
 # from django.contrib import admin
 from django.contrib import admin
 from django.urls import path
-
 from coursework import views
 
 urlpatterns = [
@@ -28,15 +27,26 @@ urlpatterns = [
     path('logout/', views.logout_page, name='logout'),
     path('profile/', views.profile, name='profile'),
     path('edit-profile/', views.profile_edit, name='profile_edit'),
+
     path('keys/', views.key_list, name='key_list'),
     path('keys/<int:key_id>/take/', views.take_key, name='take_key'),
     path('keys/<int:key_id>/put/', views.put_key, name='put_key'),
     path('keys/transfer/', views.transfer_key, name='transfer_key'),
+
     path('free-keys/', views.free_keys, name='free_keys'),
     path('free-keys/<int:key_id>/take/', views.take_key, name='take_key'),
     path('put/<int:key_id>', views.put_key, name='put_key'),
     path('transfer/<int:key_id>', views.transfer_key, name='transfer_key'),
-    # path('request-key/<int:key_id>', views.request_key, name='request_key'),
-    # path('admin/coursework/key_requests', views.manage_requests, name='manage_requests'),
-    # path('admin/requests/approve/<int:req_id>/', views.approve_request, name='approve_request'),
+
+    path('requests-take/', views.admin_key_request, name='admin_key_request'),
+    path('requests-put/', views.admin_put_request, name='admin_put_request'),
+    path('request-put-key/<int:key_id>', views.put_key_request, name='put_key_request'),
+    path('request-key/<int:key_id>/', views.take_key_request, name='take_key_request'),
+    path('key-requests/', views.admin_key_request, name='key_request'),
+    path('key-requests/approve/<int:request_id>/', views.approve_key_request, name='approve_take_request'),
+    path('key-requests/reject/<int:request_id>/', views.reject_key_request, name='reject_key_request'),
+    path('return-requests/', views.admin_put_request, name='put_request'),
+    path('return-request/approve/<int:request_id>/', views.approve_return_request, name='approve_put_request'),
+    path('return-request/reject/<int:request_id>', views.reject_key_request, name='reject_put_request'),
+
 ]

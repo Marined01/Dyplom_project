@@ -85,19 +85,50 @@ class Key(models.Model):
         self.take_key_time = timezone.now()
         self.save()
 
-#
-# class Key_requests(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
-#     key = models.ForeignKey(Key, on_delete=models.CASCADE)
-#     created_at = models.DateTimeField(default=timezone.now)
-#     is_approved = models.BooleanField(default=False)
-#     is_expired = models.BooleanField(default=False)
-#
-#     def is_valid(self):
-#         return (
-#                 timezone.now() < self.created_at + timedelta(minutes=15)
-#                 and not self.is_expired
-#                 and not self.is_approved)
-#
-#     def __str__(self):
-#         return f"Запит від {self.user} на ключ {self.key} — {'Підтверджено' if self.is_approved else 'Очікує'}"
+
+class Key_requests(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    key = models.ForeignKey(Key, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(default=timezone.now)
+    is_approved = models.BooleanField(default=False)
+    is_expired = models.BooleanField(default=False)
+
+    def is_valid(self):
+        return (
+                timezone.now() < self.created_at + timedelta(minutes=15)
+                and not self.is_expired
+                and not self.is_approved)
+
+    def __str__(self):
+        return f"Запит від {self.user} на ключ {self.key} — {'Підтверджено' if self.is_approved else 'Очікує'}"
+
+class Key_return_request(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    key = models.ForeignKey(Key, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(default=timezone.now)
+    is_approved = models.BooleanField(default=False)
+    is_expired = models.BooleanField(default=False)
+    def is_valid(self):
+        return (
+                timezone.now() < self.created_at + timedelta(minutes=15)
+                and not self.is_expired
+                and not self.is_approved)
+
+    def __str__(self):
+        return f"Запит на повернення ключа {self.key} від {self.user} — {'Підтверджено' if self.is_approved else 'Очікує'}"
+
+
+class Key_transfer(models.Model):
+    from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_transfers')
+    to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_transfers')
+    key = models.ForeignKey(Key, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(default=timezone.now)
+    is_approved = models.BooleanField(default=False)
+    is_expired = models.BooleanField(default=False)
+    def is_valid(self):
+        return (
+                timezone.now() < self.created_at + timedelta(minutes=15)
+                and not self.is_expired
+                and not self.is_approved)
+    def __str__(self):
+        return f"Запит на передавання ключа {self.key} від {self.user} — {'Підтверджено' if self.is_approved else 'Очікує'}"

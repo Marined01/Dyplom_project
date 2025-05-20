@@ -22,12 +22,12 @@
             <p><strong>Ключ:</strong> {{ req.key.auditory }}</p>
             <p><strong>Час:</strong> {{ req.created_at }}</p>
 
-            <form method="post" action="{% url 'approve_take_request' req.id %}" style="display:inline;">
+            <form method="post" action="{% url 'approve_put_request' req.id %}" style="display:inline;">
                 {% csrf_token %}
                 <button type="submit">Підтвердити</button>
             </form>
 
-            <form method="post" action="{% url 'reject_key_request' req.id %}" style="display:inline;">
+            <form method="post" action="{% url 'reject_put_request' req.id %}" style="display:inline;">
                 {% csrf_token %}
                 <button type="submit">Відхилити</button>
             </form>
