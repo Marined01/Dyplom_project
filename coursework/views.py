@@ -350,3 +350,28 @@ def reject_return_request(request, request_id):
         messages.success(request, f"Запит на повернення ключа {return_request.key.auditory} відхилено.")
 
     return redirect('put_request')
+
+@staff_member_required
+def action_view(request):
+    logs = []
+
+    for req in Key_requests.objects.filter(is_approved=True, is_expired=False):
+        logs.append({
+            'timestamp': req.created_at,
+            'text': f"{req.user.name} {req.user.surname} взяв ключ до {req.key.auditory}",
+        })
+
+    for ret in Key_return_request.objects.filter(is_approved=True, is_expired=False):
+        logs.append({
+            'timestamp': ret.created_at,
+            'text': f"{ret.user.name} {ret.user.surname} поклав ключ від {ret.key.auditory}",
+        })
+
+    for tr in Key_transfer.objects.filter(is_approved=True, is_expired=False):
+        logs.append({
+            'timestamp': tr.created_at,
+            'text': f"{tr.from_user.name} {tr.from_user.surname} передав ключ від {tr.key.auditory} користувачу " f"{tr.to_user.name} {tr.to_user.surname}"})
+
+    logs.sort(key=lambda x: x['timestamp'], reverse=True)
+
+    return render(request, 'action_view.html', {'logs': logs})

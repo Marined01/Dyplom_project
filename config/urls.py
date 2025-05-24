@@ -39,5 +39,6 @@ urlpatterns = [
     path('approve_transfer/<int:request_id>/', views.approve_transfer_request, name='approve_transfer'),
     path('reject_transfer/<int:request_id>/', views.reject_transfer_request, name='reject_transfer'),
 
+    path('action_view/', views.action_view, name='action_view'),
 
 ]

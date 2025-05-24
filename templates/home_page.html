@@ -19,6 +19,7 @@
             {% if user.is_staff %}
                 <li><a href="{% url 'key_request' %}">Запити на видачу</a></li>
                 <li><a href="{% url 'put_request' %}">Запити щоб покласти</a></li>
+                <li><a href="{% url 'action_view' %}">Історія</a></li>
             {% endif %}
 
         </ul>
