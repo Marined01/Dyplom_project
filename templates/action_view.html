@@ -1,10 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    {% load static %}
+    <meta charset="UTF-8">
+    <title>Журнал дій</title>
+    <link rel="stylesheet" href="{% static 'style_home.css' %}">
 </head>
 <body>
-$END$
+<header>
+    <nav>
+        <ul>
+            <li><a href="{% url 'home' %}">Назад</a></li>
+        </ul>
+    </nav>
+</header>
+
+<h1>Журнал дій</h1>
+
+{% if logs %}
+    {% for log in logs %}
+        <div class="container">
+            <div class="card">
+                <p><strong>Час:</strong> {{ log.timestamp|date:"d.m.Y H:i" }}</p>
+                <p><strong>Дія:</strong> {{ log.text }}</p>
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <p>Немає записів.</p>
+{% endif %}
+
+<footer>
+    <p>&copy; 2025 Coursework.</p>
+</footer>
 </body>
 </html>

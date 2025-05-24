@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'coursework',
     'django.contrib.admin',
+'django_extensions',
 ]
 
 MIDDLEWARE = [
