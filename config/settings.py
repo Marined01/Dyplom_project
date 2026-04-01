@@ -81,8 +81,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'coursework_db',
-        'USER': 'postgres',
-        'PASSWORD': '1909',
+        'USER': 'mhaiovska',
+        'PASSWORD': 'db_mhaiovska',
         'HOST': 'localhost',
         'PORT': '5432',
     }
