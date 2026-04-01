@@ -14,19 +14,36 @@ body {
 header {
     background-color: #ffffff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /*padding: 1rem 2rem;*/
+    /*display: flex;*/
+    /*justify-content: space-between;*/
+    /*align-items: center;*/
+
+}
+.topbar {
     padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-
 }
+
+.menu     { display:flex; margin:0; padding:0; list-style:none; }
+.menu li + li { margin-left:1.5rem; }
+.menu a   { text-decoration:none; color:#14273D; font-weight:500; }
+.menu a:hover { color:#5B7BC8; }
+
 
 nav ul {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: flex-start;
     list-style: none;
     margin: 0;
     padding: 0;
+}
+
+nav ul li:first-child {
+    margin-left: 0;
 }
 
 nav ul li {

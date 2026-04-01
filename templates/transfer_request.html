@@ -10,12 +10,13 @@
 </head>
 <body>
 <header>
-    <nav>
-        <ul>
-            <li><a href="{% url 'home' %}">Назад</a></li>
+     <nav class="topbar">
+        <ul class="menu left">
+            <li><a href="{% url 'free_keys' %}">Список вільних аудиторій</a></li>
+        </ul>
+        <ul class="menu right">
             <li><a href="{% url 'profile' %}">Профіль</a></li>
             <li><a href="{% url 'logout' %}">Вихід</a></li>
-
         </ul>
     </nav>
 </header>
@@ -43,9 +44,8 @@
     <p>Немає активних запитів на передачу.</p>
 {% endif %}
 
-
 <footer>
-    <p>&copy; 2025 Courework.</p>
+    <p>&copy; 2026 Ключ до безпеки - у впорядкованих ключах.</p>
 </footer>
 </body>
 </html>

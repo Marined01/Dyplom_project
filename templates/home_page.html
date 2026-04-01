@@ -10,18 +10,20 @@
 </head>
 <body>
 <header>
-    <nav>
-        <ul>
+    <nav class="topbar">
+        <ul class="menu left">
             <li><a href="{% url 'free_keys' %}">Список вільних аудиторій</a></li>
-            <li><a href="{% url 'profile' %}">Профіль</a></li>
-            <li><a href="{% url 'logout' %}">Вихід</a></li>
             <li><a href="{% url 'incoming_transfers' %}">Передавання</a></li>
+
             {% if user.is_staff %}
                 <li><a href="{% url 'key_request' %}">Запити на видачу</a></li>
                 <li><a href="{% url 'put_request' %}">Запити щоб покласти</a></li>
                 <li><a href="{% url 'action_view' %}">Історія</a></li>
             {% endif %}
-
+        </ul>
+        <ul class="menu right">
+            <li class="push-right"><a href="{% url 'profile' %}">Профіль</a></li>
+            <li><a href="{% url 'logout' %}">Вихід</a></li>
         </ul>
     </nav>
 </header>
@@ -56,7 +58,7 @@
 {% endif %}
 
 <footer>
-    <p>&copy; 2025 Courework.</p>
+    <p>&copy; 2026 Ключ до безпеки - у впорядкованих ключах.</p>
 </footer>
 </body>
 </html>
