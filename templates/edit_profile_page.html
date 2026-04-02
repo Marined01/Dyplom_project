@@ -8,12 +8,15 @@
     <link rel="stylesheet" href="{% static 'style_home.css' %}">
 </head>
 <body>
-<header>
+    <header>
         <nav class="topbar">
-            <ul class="menu right">
+            <ul class="menu left">
+                <li><a href="{% url 'home' %}">Назад</a></li>
+                <li><a href="{% url 'free_keys' %}">Список вільних аудиторій</a></li>
                 <li><a href="{% url 'home' %}">Головна</a></li>
             </ul>
-            <ul class="menu left">
+            <ul class="menu right">
+                <li><a href="{% url 'profile' %}">Профіль</a></li>
                 <li><a href="{% url 'logout' %}">Вихід</a></li>
             </ul>
         </nav>
@@ -43,7 +46,7 @@
 </div>
 </main>
 <footer>
-    <p>&copy; 2026 Ключ до безпеки - у впорядкованих ключах.</p>
+    <p>&copy; 2026 Впорядкованість - ключ до безпеки.</p>
 </footer>
 
 </body>
