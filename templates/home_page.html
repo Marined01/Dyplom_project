@@ -43,7 +43,7 @@
     {% for key in users_keys %}
         <div class="container">
             <div class="card">
-                <p><strong>Аудиторія:</strong> {{ key.auditory }}</p>
+                <p><strong>Авдиторія:</strong> {{ key.auditory }}</p>
 {#                <p><strong>Статус:</strong> {{ key.get_status_display }}</p>#}
                 <p><strong>Час взяття:</strong> {{ key.take_key_time }}</p>
                 <a method="post" href="{% url 'put_key_request' key.id %}" class="btn">Покласти ключ</a>
