@@ -1,48 +1,21 @@
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
-  <head>
-    {% load static %}
-    <meta charset="utf-8">
-    <title>Login</title>
-    <link rel="stylesheet" href="{% static 'style.css' %}">
-  </head>
-  <body>
-    <div class="center">
-      <h1>Вхід</h1>
-
-      {% if messages %}
-          {% for message in messages %}
-              {% if message.tags == 'error' %}
-                  <center><h4 style="color: firebrick;">{{message}}</h4></center>
-              {% else %}
-                  <center><h4 style="color: dodgerblue;">{{message}}</h4></center>
-              {% endif %}
-          {% endfor %}
-      {% endif %}
-
-      <form method="POST">
-
-        {% csrf_token %}
-
-        <div class="txt_field">
-          <input type="text" required name="email">
-          <span></span>
-          <label>Електронна пошта</label>
-        </div>
-
-        <div class="txt_field">
-          <input type="password" required name="password">
-          <span></span>
-          <label>Пароль</label>
-        </div>
-
-        <input type="submit" value="Вхід">
-        <div class="signup_link">
-            Не маєте акаунту? <a href="{% url 'registration' %}">Реєстрація</a>
-{#          <p>Forgot your Password? <a href="{% url 'forgot-password' %}">Reset Password</a></p>#}
-        </div>
-      </form>
-    </div>
-
-  </body>
-</html>
+{% extends "base.html" %}
+{% block title %}Вхід{% endblock %}
+{% block body_class %}app-shell auth-page{% endblock %}
+{% block content %}
+  <div class="auth-panel">
+    <h1>Вхід</h1>
+    <form method="post" class="form-stack" action="">
+      {% csrf_token %}
+      <div class="field">
+        <label for="id_email">Електронна пошта</label>
+        <input id="id_email" type="email" name="email" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="id_password">Пароль</label>
+        <input id="id_password" type="password" name="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn">Увійти</button>
+    </form>
+    <p class="auth-footer-link">Не маєте акаунту? <a href="{% url 'registration' %}">Реєстрація</a></p>
+  </div>
+{% endblock %}

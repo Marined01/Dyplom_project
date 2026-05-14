@@ -131,4 +131,7 @@ class Key_transfer(models.Model):
                 and not self.is_expired
                 and not self.is_approved)
     def __str__(self):
-        return f"Запит на передавання ключа {self.key} від {self.user} — {'Підтверджено' if self.is_approved else 'Очікує'}"
+        return (
+            f"Запит на передавання ключа {self.key} від {self.from_user} "
+            f"до {self.to_user} — {'Підтверджено' if self.is_approved else 'Очікує'}"
+        )

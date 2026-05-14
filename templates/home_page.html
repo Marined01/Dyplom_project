@@ -1,64 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    {% load static %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home page</title>
-    <link rel="stylesheet" href="{% static 'style_home.css' %}">
+{% extends "base.html" %}
+{% block title %}Головна{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1>Ваші ключі</h1>
+    <p>Аудиторії, ключі від яких зараз у вас на руках</p>
+  </div>
 
-</head>
-<body>
-<header>
-    <nav class="topbar">
-        <ul class="menu left">
-            <li><a href="{% url 'free_keys' %}">Список вільних аудиторій</a></li>
-            <li><a href="{% url 'incoming_transfers' %}">Передавання</a></li>
-
-            {% if user.is_staff %}
-                <li><a href="{% url 'key_request' %}">Запити на видачу</a></li>
-                <li><a href="{% url 'put_request' %}">Запити щоб покласти</a></li>
-                <li><a href="{% url 'action_view' %}">Історія</a></li>
-            {% endif %}
-        </ul>
-        <ul class="menu right">
-            <li class="push-right"><a href="{% url 'profile' %}">Профіль</a></li>
-            <li><a href="{% url 'logout' %}">Вихід</a></li>
-        </ul>
-    </nav>
-</header>
- {% if messages %}
-  <ul class="messages">
-    {% for message in messages %}
-      <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>
-        {{ message }}
-      </li>
-    {% endfor %}
-  </ul>
-{% endif %}
-<h1>Ваші ключі:</h1>
-
-
-{% if users_keys %}
-    {% for key in users_keys %}
-        <div class="container">
-            <div class="card">
-                <p><strong>Авдиторія:</strong> {{ key.auditory }}</p>
-{#                <p><strong>Статус:</strong> {{ key.get_status_display }}</p>#}
-                <p><strong>Час взяття:</strong> {{ key.take_key_time }}</p>
-                <a method="post" href="{% url 'put_key_request' key.id %}" class="btn">Покласти ключ</a>
-                <a method="post" href="{% url 'transfer_key' key.id%}" class="btn">Передати ключ</a>
-
-            </div>
+  {% if users_keys %}
+    <div class="card-list">
+      {% for key in users_keys %}
+        <div class="card">
+          <div class="card__body">
+            <p><strong>Аудиторія:</strong> {{ key.auditory }}</p>
+            <p class="card__meta"><strong>Час взяття:</strong> {{ key.take_key_time }}</p>
+          </div>
+          <div class="card__actions">
+            <form method="post" action="{% url 'put_key_request' key.id %}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn--secondary">Запит на повернення</button>
+            </form>
+            <a href="{% url 'transfer_key' key.id %}" class="btn">Передати ключ</a>
+          </div>
         </div>
-
-    {% endfor %}
-{% else %}
-    <p>У вас немає ключів.</p>
-{% endif %}
-
-<footer>
-    <p>&copy; 2026 Впорядкованість - ключ до безпеки.</p>
-</footer>
-</body>
-</html>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-state">У вас немає ключів. Перегляньте <a href="{% url 'free_keys' %}">вільні аудиторії</a>, щоб подати запит на видачу.</p>
+  {% endif %}
+{% endblock %}

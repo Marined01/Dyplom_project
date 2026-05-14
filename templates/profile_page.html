@@ -1,47 +1,19 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    {% load static %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile</title>
-    <link rel="stylesheet" href="{% static 'style_home.css' %}">
-</head>
-<body>
-    <header>
-        <nav class="topbar">
-            <ul class="menu left">
-                <li><a href="{% url 'free_keys' %}">Список вільних аудиторій</a></li>
-                <li><a href="{% url 'home' %}">Головна</a></li>
-            </ul>
-            <ul class="menu right">
-                <li><a href="{% url 'logout' %}">Вихід</a></li>
-            </ul>
-        </nav>
-    </header>
+{% extends "base.html" %}
+{% block title %}Профіль{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1>Профіль</h1>
+    <p>Ваші дані в системі</p>
+  </div>
 
-    <main class="container">
-
-
-        <div class="center">
-    <h1>Профіль користувача</h1>
-
-    <form method="POST">
-
-        <div class="profile-info">
-        <p><strong>Ім’я:</strong> {{ user.name }}</p>
-        <p><strong>Прізвище:</strong> {{ user.surname }}</p>
-        <p><strong>Email:</strong> {{ user.email }}</p>
-{#        <p><strong>Дата створення:</strong> {{ user.date_joined }}</p>#}
+  <div class="card profile-card">
+    <div class="card__body profile-info">
+      <p><strong>Ім’я:</strong> {{ user.name }}</p>
+      <p><strong>Прізвище:</strong> {{ user.surname }}</p>
+      <p><strong>Електронна пошта:</strong> {{ user.email }}</p>
     </div>
-        <a href="{% url 'profile_edit' %}" class="btn">Редагувати профіль</a>
-        <a href="{% url 'home' %}" class="btn" style="margin-top: 1rem;">Повернутися назад</a>
-    </form>
-
-</div>
-</main>
-    <footer>
-        <p>&copy; 2026 Впорядкованість - ключ до безпеки.</p>
-    </footer>
-</body>
-</html>
+    <div class="card__actions">
+      <a href="{% url 'profile_edit' %}" class="btn">Редагувати профіль</a>
+    </div>
+  </div>
+{% endblock %}

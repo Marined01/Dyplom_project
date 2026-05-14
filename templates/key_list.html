@@ -1,44 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Key list</title>
-    <link rel="stylesheet">
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}Усі ключі{% endblock %}
+{% block content %}
+  <div class="page-head">
     <h1>Список ключів</h1>
-<table border="1">
-    <tr>
-        <th>Авдиторія</th>
-        <th>Статус</th>
-        <th>Хто тримає</th>
-        <th>Час взяття</th>
-        <th>Час повернення</th>
-        <th>Взяти/покласти</th>
-    </tr>
-    {% for key in keys %}
-    <tr>
-        <td>{{ key.auditory }}</td>
-        <td>{{ key.status }}</td>
-        <td>{{ key.holder }}</td>
-        <td>{{ key.take_key_time }}</td>
-        <td>{{ key.put_key_time }}</td>
-   <td>
-        {% if key.status == 'free' %}
-            <form method="post" action="{% url 'take_key' key.id %}">
-                {% csrf_token %}
-                <button type="submit">Взяти</button>
-            </form>
-        {% else %}
-            <form method="post" action="{% url 'put_key' key.id %}">
-                {% csrf_token %}
-                <button type="submit">Повернути</button>
-            </form>
-            <a href="#" class="btn">Передати</a>
-        {% endif %}
-    </td>
-    </tr>
-    {% endfor %}
-</table>
-</body>
-</html>
+    <p>Швидка видача та повернення (для демонстрації або ролі з доступом)</p>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Аудиторія</th>
+          <th>Статус</th>
+          <th>Хто тримає</th>
+          <th>Час взяття</th>
+          <th>Час повернення</th>
+          <th>Дія</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for key in keys %}
+          <tr>
+            <td>{{ key.auditory }}</td>
+            <td>{{ key.get_status_display }}</td>
+            <td>{% if key.holder %}{{ key.holder }}{% else %}—{% endif %}</td>
+            <td>{% if key.take_key_time %}{{ key.take_key_time }}{% else %}—{% endif %}</td>
+            <td>{% if key.put_key_time %}{{ key.put_key_time }}{% else %}—{% endif %}</td>
+            <td>
+              {% if key.status == 'free' %}
+                <form method="post" action="{% url 'take_key' key.id %}" class="inline-form">
+                  {% csrf_token %}
+                  <button type="submit" class="btn">Взяти</button>
+                </form>
+              {% elif key.status == 'taken' %}
+                <form method="post" action="{% url 'put_key' key.id %}" class="inline-form">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn--secondary">Повернути</button>
+                </form>
+                <a href="{% url 'transfer_key' key.id %}" class="btn btn--ghost">Передати</a>
+              {% else %}
+                <span class="card__meta">Очікує підтвердження</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
