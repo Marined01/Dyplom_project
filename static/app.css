@@ -1,21 +1,86 @@
 /* Облік ключів — єдині стилі застосунку */
 
 :root {
-  --color-bg: #f0f3f9;
+  color-scheme: light;
   --color-surface: #ffffff;
   --color-text: #1a2332;
   --color-muted: #5c6678;
   --color-accent: #2d4a8c;
   --color-accent-hover: #1e3566;
   --color-danger: #b42318;
+  --color-danger-hover: #8f1c14;
   --color-danger-bg: #fde8e6;
   --color-success-bg: #e3f5ec;
   --color-warning-bg: #fff4e0;
   --color-info-bg: #e8eef9;
+  --color-border: rgba(26, 35, 50, 0.12);
+  --color-border-subtle: rgba(26, 35, 50, 0.06);
+  --color-border-soft: rgba(26, 35, 50, 0.08);
+  --color-border-input: rgba(26, 35, 50, 0.15);
+  --color-input-bg: #ffffff;
+  --color-link-hover-bg: rgba(45, 74, 140, 0.08);
+  --color-summary-hover: rgba(45, 74, 140, 0.1);
+  --color-summary-open: rgba(45, 74, 140, 0.12);
+  --color-panel-row-hover: rgba(45, 74, 140, 0.08);
+  --color-table-head-bg: rgba(45, 74, 140, 0.06);
+  --color-table-row-hover: rgba(45, 74, 140, 0.03);
+  --color-btn-secondary-border: rgba(45, 74, 140, 0.35);
+  --color-btn-secondary-hover-bg: rgba(45, 74, 140, 0.06);
+  --color-btn-ghost-border: rgba(45, 74, 140, 0.4);
+  --color-focus-ring: rgba(45, 74, 140, 0.35);
+  --color-msg-error-border: rgba(180, 35, 24, 0.25);
+  --color-msg-success-border: rgba(34, 120, 80, 0.2);
+  --color-msg-warning-border: rgba(180, 120, 0, 0.25);
+  --color-msg-info-border: rgba(45, 74, 140, 0.15);
+  --color-msg-error-text: #7a1510;
+  --color-msg-success-text: #14532d;
+  --color-msg-warning-text: #6b4a00;
+  --body-gradient: linear-gradient(165deg, #e4eaf6 0%, var(--color-bg) 38%, #eef1f8 100%);
+  --footer-bg: rgba(255, 255, 255, 0.5);
   --radius: 12px;
   --shadow: 0 1px 2px rgba(26, 35, 50, 0.06), 0 4px 12px rgba(26, 35, 50, 0.08);
   --font: "DM Sans", system-ui, -apple-system, sans-serif;
-  --header-h: auto;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #141820;
+  --color-surface: #1e2430;
+  --color-text: #e8ecf4;
+  --color-muted: #9aa4b8;
+  --color-accent: #8eb4f0;
+  --color-accent-hover: #b3cef7;
+  --color-danger: #f87171;
+  --color-danger-hover: #fca5a5;
+  --color-danger-bg: #3a2424;
+  --color-success-bg: #1a2e24;
+  --color-warning-bg: #2e2818;
+  --color-info-bg: #242e42;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border-soft: rgba(255, 255, 255, 0.08);
+  --color-border-input: rgba(255, 255, 255, 0.14);
+  --color-input-bg: #2a3140;
+  --color-link-hover-bg: rgba(139, 168, 232, 0.12);
+  --color-summary-hover: rgba(139, 168, 232, 0.16);
+  --color-summary-open: rgba(139, 168, 232, 0.22);
+  --color-panel-row-hover: rgba(139, 168, 232, 0.1);
+  --color-table-head-bg: rgba(139, 168, 232, 0.1);
+  --color-table-row-hover: rgba(139, 168, 232, 0.06);
+  --color-btn-secondary-border: rgba(142, 180, 240, 0.45);
+  --color-btn-secondary-hover-bg: rgba(139, 168, 232, 0.1);
+  --color-btn-ghost-border: rgba(142, 180, 240, 0.45);
+  --color-focus-ring: rgba(142, 180, 240, 0.45);
+  --color-msg-error-border: rgba(248, 113, 113, 0.35);
+  --color-msg-success-border: rgba(110, 200, 150, 0.35);
+  --color-msg-warning-border: rgba(250, 204, 21, 0.35);
+  --color-msg-info-border: rgba(142, 180, 240, 0.3);
+  --color-msg-error-text: #fecaca;
+  --color-msg-success-text: #86efac;
+  --color-msg-warning-text: #fde047;
+  --body-gradient: linear-gradient(165deg, #0f1218 0%, var(--color-bg) 40%, #1a1f28 100%);
+  --footer-bg: rgba(20, 24, 32, 0.65);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 6px 16px rgba(0, 0, 0, 0.25);
 }
 
 *,
@@ -41,14 +106,14 @@ body {
 }
 
 body.app-shell {
-  background: linear-gradient(165deg, #e4eaf6 0%, var(--color-bg) 38%, #eef1f8 100%);
+  background: var(--body-gradient);
 }
 
 /* --- Header --- */
 
 .site-header {
   background: var(--color-surface);
-  border-bottom: 1px solid rgba(26, 35, 50, 0.08);
+  border-bottom: 1px solid var(--color-border-soft);
   box-shadow: var(--shadow);
   position: sticky;
   top: 0;
@@ -57,7 +122,7 @@ body.app-shell {
 
 .site-header--guest {
   box-shadow: none;
-  border-bottom: 1px solid rgba(26, 35, 50, 0.06);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .site-header__inner {
@@ -69,6 +134,10 @@ body.app-shell {
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.site-header__inner--guest {
+  align-items: center;
 }
 
 .brand {
@@ -85,6 +154,55 @@ body.app-shell {
 
 .brand--static {
   cursor: default;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-input-bg);
+  color: var(--color-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--color-link-hover-bg);
+  border-color: var(--color-accent);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.theme-toggle__icon {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.theme-toggle__icon svg {
+  display: block;
+}
+
+html[data-theme="light"] .theme-toggle__icon--moon,
+html:not([data-theme]) .theme-toggle__icon--moon {
+  display: flex;
+}
+
+html[data-theme="dark"] .theme-toggle__icon--sun {
+  display: flex;
 }
 
 .site-nav {
@@ -111,7 +229,7 @@ body.app-shell {
   flex-shrink: 0;
   flex-wrap: nowrap;
   padding-left: 0.5rem;
-  border-left: 1px solid rgba(26, 35, 50, 0.12);
+  border-left: 1px solid var(--color-border);
 }
 
 .site-nav a {
@@ -124,7 +242,7 @@ body.app-shell {
 }
 
 .site-nav a:hover {
-  background: rgba(45, 74, 140, 0.08);
+  background: var(--color-link-hover-bg);
   color: var(--color-accent);
 }
 
@@ -166,16 +284,16 @@ body.app-shell {
 }
 
 .nav-admin-summary:hover {
-  background: rgba(45, 74, 140, 0.1);
+  background: var(--color-summary-hover);
 }
 
 .nav-admin-summary:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .nav-admin-details[open] .nav-admin-summary {
-  background: rgba(45, 74, 140, 0.12);
+  background: var(--color-summary-open);
 }
 
 .nav-admin-panel {
@@ -189,7 +307,7 @@ body.app-shell {
   padding: 0.35rem 0;
   list-style: none;
   background: var(--color-surface);
-  border: 1px solid rgba(26, 35, 50, 0.12);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
@@ -206,7 +324,7 @@ body.app-shell {
 }
 
 .nav-admin-panel a:hover {
-  background: rgba(45, 74, 140, 0.08);
+  background: var(--color-panel-row-hover);
 }
 
 @media (max-width: 720px) {
@@ -233,7 +351,7 @@ body.app-shell {
     border-left: none;
     padding-left: 0;
     padding-top: 0.35rem;
-    border-top: 1px solid rgba(26, 35, 50, 0.1);
+    border-top: 1px solid var(--color-border-soft);
   }
 
   .nav-admin-panel {
@@ -241,7 +359,7 @@ body.app-shell {
     margin-top: 0.35rem;
     min-width: 100%;
     box-shadow: none;
-    border: 1px solid rgba(26, 35, 50, 0.1);
+    border: 1px solid var(--color-border-soft);
   }
 
   .nav-admin-panel a {
@@ -286,25 +404,25 @@ body.app-shell {
 
 .message--error {
   background: var(--color-danger-bg);
-  border-color: rgba(180, 35, 24, 0.25);
-  color: #7a1510;
+  border-color: var(--color-msg-error-border);
+  color: var(--color-msg-error-text);
 }
 
 .message--success {
   background: var(--color-success-bg);
-  border-color: rgba(34, 120, 80, 0.2);
-  color: #14532d;
+  border-color: var(--color-msg-success-border);
+  color: var(--color-msg-success-text);
 }
 
 .message--warning {
   background: var(--color-warning-bg);
-  border-color: rgba(180, 120, 0, 0.25);
-  color: #6b4a00;
+  border-color: var(--color-msg-warning-border);
+  color: var(--color-msg-warning-text);
 }
 
 .message--info {
   background: var(--color-info-bg);
-  border-color: rgba(45, 74, 140, 0.15);
+  border-color: var(--color-msg-info-border);
   color: var(--color-text);
 }
 
@@ -349,7 +467,7 @@ body.app-shell {
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
   box-shadow: var(--shadow);
-  border: 1px solid rgba(26, 35, 50, 0.06);
+  border: 1px solid var(--color-border-subtle);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -406,11 +524,11 @@ body.app-shell {
 .btn--secondary {
   background: var(--color-surface);
   color: var(--color-accent);
-  border: 1px solid rgba(45, 74, 140, 0.35);
+  border: 1px solid var(--color-btn-secondary-border);
 }
 
 .btn--secondary:hover {
-  background: rgba(45, 74, 140, 0.06);
+  background: var(--color-btn-secondary-hover-bg);
 }
 
 .btn--danger {
@@ -418,17 +536,17 @@ body.app-shell {
 }
 
 .btn--danger:hover {
-  background: #8f1c14;
+  background: var(--color-danger-hover);
 }
 
 .btn--ghost {
   background: transparent;
   color: var(--color-accent);
-  border: 1px dashed rgba(45, 74, 140, 0.4);
+  border: 1px dashed var(--color-btn-ghost-border);
 }
 
 .btn--ghost:hover {
-  background: rgba(45, 74, 140, 0.06);
+  background: var(--color-btn-secondary-hover-bg);
 }
 
 .inline-form {
@@ -445,7 +563,7 @@ body.app-shell {
   overflow-x: auto;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  border: 1px solid rgba(26, 35, 50, 0.08);
+  border: 1px solid var(--color-border-soft);
   background: var(--color-surface);
 }
 
@@ -459,11 +577,11 @@ body.app-shell {
 .data-table td {
   padding: 0.75rem 1rem;
   text-align: left;
-  border-bottom: 1px solid rgba(26, 35, 50, 0.08);
+  border-bottom: 1px solid var(--color-border-soft);
 }
 
 .data-table th {
-  background: rgba(45, 74, 140, 0.06);
+  background: var(--color-table-head-bg);
   font-weight: 600;
   color: var(--color-muted);
   font-size: 0.8rem;
@@ -476,7 +594,7 @@ body.app-shell {
 }
 
 .data-table tbody tr:hover {
-  background: rgba(45, 74, 140, 0.03);
+  background: var(--color-table-row-hover);
 }
 
 /* --- Auth (login / register) --- */
@@ -496,7 +614,7 @@ body.auth-page .app-main {
   border-radius: var(--radius);
   padding: 2rem 1.75rem;
   box-shadow: var(--shadow);
-  border: 1px solid rgba(26, 35, 50, 0.08);
+  border: 1px solid var(--color-border-soft);
 }
 
 .auth-panel h1 {
@@ -528,14 +646,16 @@ body.auth-page .app-main {
 .field input {
   width: 100%;
   padding: 0.65rem 0.85rem;
-  border: 1px solid rgba(26, 35, 50, 0.15);
+  border: 1px solid var(--color-border-input);
   border-radius: 10px;
   font-family: inherit;
   font-size: 1rem;
+  background: var(--color-input-bg);
+  color: var(--color-text);
 }
 
 .field input:focus {
-  outline: 2px solid rgba(45, 74, 140, 0.35);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 1px;
   border-color: var(--color-accent);
 }
@@ -598,8 +718,8 @@ body.auth-page .app-main {
   text-align: center;
   font-size: 0.85rem;
   color: var(--color-muted);
-  border-top: 1px solid rgba(26, 35, 50, 0.06);
-  background: rgba(255, 255, 255, 0.5);
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--footer-bg);
 }
 
 .site-footer p {
