@@ -1,37 +1,23 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    {% load static %}
-    <meta charset="UTF-8">
-    <title>Журнал дій</title>
-    <link rel="stylesheet" href="{% static 'style_home.css' %}">
-</head>
-<body>
-<header>
-    <nav>
-        <ul>
-            <li><a href="{% url 'home' %}">Назад</a></li>
-        </ul>
-    </nav>
-</header>
+{% extends "base.html" %}
+{% block title %}Журнал дій{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1>Журнал дій</h1>
+    <p>Підтверджені операції з ключами</p>
+  </div>
 
-<h1>Журнал дій</h1>
-
-{% if logs %}
-    {% for log in logs %}
-        <div class="container">
-            <div class="card">
-                <p><strong>Час:</strong> {{ log.timestamp|date:"d.m.Y H:i" }}</p>
-                <p><strong>Дія:</strong> {{ log.text }}</p>
-            </div>
+  {% if logs %}
+    <div class="card-list">
+      {% for log in logs %}
+        <div class="card">
+          <div class="card__body">
+            <p class="card__meta"><strong>Час:</strong> {{ log.timestamp|date:"d.m.Y H:i" }}</p>
+            <p><strong>Подія:</strong> {{ log.text }}</p>
+          </div>
         </div>
-    {% endfor %}
-{% else %}
-    <p>Немає записів.</p>
-{% endif %}
-
-<footer>
-    <p>&copy; 2025 Coursework.</p>
-</footer>
-</body>
-</html>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-state">Немає записів.</p>
+  {% endif %}
+{% endblock %}

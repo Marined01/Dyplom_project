@@ -1,48 +1,26 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    {% load static %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Передача ключа</title>
-    <link rel="stylesheet" href="{% static 'style.css' %}">
-</head>
-<body>
-<header>
-    <nav>
-        <ul>
-            <li><a href="{% url 'free_keys' %}">Список вільних аудиторій</a></li>
-            <li><a href="{% url 'profile' %}">Профіль</a></li>
-            <li><a href="{% url 'logout' %}">Вихід</a></li>
-        </ul>
-    </nav>
-</header>
+{% extends "base.html" %}
+{% block title %}Передача ключа{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1>Передати ключ</h1>
+    <p>Аудиторія <strong>{{ key.auditory }}</strong> — вкажіть ім’я та прізвище отримувача зареєстрованого в системі</p>
+  </div>
 
-<div class="center">
-    <h1>Передати</h1>
-
-    <form method="POST">
-
-        {% csrf_token %}
-
-        <div class="txt_field">
-            <input type="text" required name="name">
-            <span></span>
-            <label>Ім'я користувача</label>
-        </div>
-
-        <div class="txt_field">
-            <input type="text" required name="surname">
-            <span></span>
-            <label>Прізвище користувача</label>
-        </div>
-
-        <input type="submit" value="Передати">
-        <a href="{% url 'home' %}" class="btn" style="margin-top: 1rem;">Повернутися назад</a>
+  <div class="card profile-card">
+    <form method="post" class="form-stack" action="">
+      {% csrf_token %}
+      <div class="field">
+        <label for="id_name">Ім’я</label>
+        <input id="id_name" type="text" name="name" required autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label for="id_surname">Прізвище</label>
+        <input id="id_surname" type="text" name="surname" required autocomplete="family-name">
+      </div>
+      <button type="submit" class="btn">Надіслати запит на передачу</button>
+      <div class="form-actions-row">
+        <a href="{% url 'home' %}" class="btn btn--secondary">Скасувати</a>
+      </div>
     </form>
-</div>
-<footer>
-    <p>&copy; 2025 Coursework.</p>
-</footer>
-</body>
-</html>
+  </div>
+{% endblock %}
