@@ -1,59 +1,30 @@
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
-  <head>
-    {% load static %}
-    <meta charset="utf-8">
-    <title>Register</title>
-    <link rel="stylesheet" href="{% static 'style.css' %}">
-  </head>
-  <body>
-    <div class="center">
-      <h1>Реєстрація</h1>
-
-      {% if messages %}
-          {% for message in messages %}
-              {% if message.tags == 'error' %}
-                  <center><h4 style="color: firebrick;">{{message}}</h4></center>
-              {% else %}
-                  <center><h4 style="color: dodgerblue;">{{message}}</h4></center>
-              {% endif %}
-          {% endfor %}
-      {% endif %}
-
-      <form method="POST">
-
-        {% csrf_token %}
-
-        <div class="txt_field">
-            <input type="text" required name="name">
-            <span></span>
-            <label>Ім'я</label>
-          </div>
-
-          <div class="txt_field">
-            <input type="text" required name="surname">
-            <span></span>
-            <label>Прізвище</label>
-          </div>
-
-        <div class="txt_field">
-            <input type="email" required name="email">
-            <span></span>
-            <label>Електронна пошта</label>
-          </div>
-
-        <div class="txt_field">
-          <input type="password" required name="password">
-          <span></span>
-          <label>Пароль</label>
-        </div>
-
-        <input type="submit" value="Реєстрація">
-        <div class="signup_link">
-          Вже маєте акаунт? <a href="{% url 'login' %}">Увійдіть</a>
-        </div>
-      </form>
-    </div>
-
-  </body>
-</html>
+{% extends "base.html" %}
+{% block title %}Реєстрація{% endblock %}
+{% block body_class %}app-shell auth-page{% endblock %}
+{% block content %}
+  <div class="auth-panel">
+    <h1>Реєстрація</h1>
+    <form method="post" class="form-stack" action="">
+      {% csrf_token %}
+      <div class="field">
+        <label for="id_name">Ім’я</label>
+        <input id="id_name" type="text" name="name" required autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label for="id_surname">Прізвище</label>
+        <input id="id_surname" type="text" name="surname" required autocomplete="family-name">
+      </div>
+      <div class="field">
+        <label for="id_email">Електронна пошта</label>
+        <input id="id_email" type="email" name="email" required autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="id_password">Пароль</label>
+        <input id="id_password" type="password" name="password" required autocomplete="new-password" minlength="8">
+        <p class="hint">Щонайменше 8 символів.</p>
+      </div>
+      <button type="submit" class="btn">Створити акаунт</button>
+    </form>
+    <p class="auth-footer-link">Вже маєте акаунт? <a href="{% url 'login' %}">Увійдіть</a></p>
+  </div>
+{% endblock %}
