@@ -1,0 +1,63 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Головна{% endblock %} — облік ключів</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'app.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}app-shell{% endblock %}">
+  {% if user.is_authenticated %}
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a href="{% url 'home' %}" class="brand">Облік ключів</a>
+        <nav class="site-nav{% if user.is_staff %} site-nav--staff{% endif %}" aria-label="Головне меню">
+          <ul class="site-nav__list site-nav__list--main">
+            <li><a href="{% url 'home' %}">Головна</a></li>
+            <li><a href="{% url 'free_keys' %}">Вільні аудиторії</a></li>
+            <li><a href="{% url 'incoming_transfers' %}">Передавання</a></li>
+<!--            <li><a href="{% url 'key_list' %}">Усі ключі</a></li>-->
+            {% if user.is_staff %}
+              <li class="site-nav__dropdown">
+                <details class="nav-admin-details">
+                  <summary class="nav-admin-summary">Адмін</summary>
+                  <ul class="nav-admin-panel">
+                    <li><a href="{% url 'key_request' %}">Запити на видачу</a></li>
+                    <li><a href="{% url 'put_request' %}">Запити на повернення</a></li>
+                    <li><a href="{% url 'action_view' %}">Журнал</a></li>
+                  </ul>
+                </details>
+              </li>
+            {% endif %}
+          </ul>
+          <ul class="site-nav__list site-nav__list--end">
+            <li><a href="{% url 'profile' %}">Профіль</a></li>
+            <li><a href="{% url 'logout' %}" class="link-muted">Вихід</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+  {% else %}
+    <header class="site-header site-header--guest">
+      <div class="site-header__inner">
+        <span class="brand brand--static">Облік ключів</span>
+      </div>
+    </header>
+  {% endif %}
+
+  {% include "partials/messages.html" %}
+
+  <main class="app-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <p>© {% now "Y" %} Впорядкованість - ключ до безпеки.</p>
+  </footer>
+</body>
+</html>
