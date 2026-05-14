@@ -54,7 +54,7 @@ class Key(models.Model):
     holder = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
-        return f"Аудиторія {self.auditory} — {self.get_status_display()}"
+        return f"Авдиторія {self.auditory} — {self.get_status_display()}"
 
     def take_key(self, user):
         if self.status == 'taken':
@@ -72,7 +72,7 @@ class Key(models.Model):
 
     def put_key(self):
         if self.status == 'free':
-            raise ValueError('Ключ не був на руках (аудиторія вільна)')
+            raise ValueError('Ключ не був на руках (авдиторія вільна)')
         self.status = 'free'
         self.holder = None
         self.put_key_time = timezone.now()
@@ -80,7 +80,7 @@ class Key(models.Model):
 
     def transfer_key(self, new_user):
         if self.status == 'free':
-            raise ValueError('Аудиторія вільна, неможливо передати ключ')
+            raise ValueError('Авдиторія вільна, неможливо передати ключ')
         self.holder = new_user
         self.take_key_time = timezone.now()
         self.save()
@@ -131,4 +131,7 @@ class Key_transfer(models.Model):
                 and not self.is_expired
                 and not self.is_approved)
     def __str__(self):
-        return f"Запит на передавання ключа {self.key} від {self.user} — {'Підтверджено' if self.is_approved else 'Очікує'}"
+        return (
+            f"Запит на передавання ключа {self.key} від {self.from_user} "
+            f"до {self.to_user} — {'Підтверджено' if self.is_approved else 'Очікує'}"
+        )

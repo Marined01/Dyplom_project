@@ -2,13 +2,13 @@ from django.utils import timezone
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.http import Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from coursework.models import Key, User, Key_requests, Key_return_request, Key_transfer
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponseRedirect
 
 def registration_page(request):
     if request.method == 'POST':
@@ -68,6 +68,7 @@ def key_list(request):
     return render(request, 'key_list.html', {'keys': keys, 'user': request.user})
 
 @login_required
+@require_POST
 def take_key(request, key_id):
     try:
         key = Key.objects.get(id=key_id)
@@ -83,6 +84,7 @@ def take_key(request, key_id):
     return redirect('home')
 
 @login_required
+@require_POST
 def put_key(request, key_id):
     try:
         key = Key.objects.get(id=key_id)
@@ -142,39 +144,47 @@ def my_transfer_requests(request):
     return render(request, 'transfer_request.html', {'requests': requests})
 
 @login_required
+@require_POST
 def approve_transfer_request(request, request_id):
-    if request.method == 'POST':
-        transfer_request = get_object_or_404(Key_transfer, id=request_id)
+    transfer_request = get_object_or_404(Key_transfer, id=request_id)
 
-        if transfer_request.is_valid():
-            transfer_request.key.transfer_key(request.user)
-            transfer_request.is_approved = True
-            transfer_request.save()
-            messages.success(request, "Ключ передано вам.")
-        else:
-            transfer_request.is_expired = True
-            transfer_request.save()
-            messages.error(request, "Запит недійсний або протермінований.")
+    if transfer_request.to_user_id != request.user.id:
+        messages.error(request, "Цей запит адресований не вам.")
+        return redirect('incoming_transfers')
 
-        return redirect('home')
+    if transfer_request.is_valid():
+        transfer_request.key.transfer_key(request.user)
+        transfer_request.is_approved = True
+        transfer_request.save()
+        messages.success(request, "Ключ передано вам.")
+    else:
+        transfer_request.is_expired = True
+        transfer_request.save()
+        messages.error(request, "Запит недійсний або протермінований.")
 
-@staff_member_required
+    return redirect('incoming_transfers')
+
+
+@login_required
+@require_POST
 def reject_transfer_request(request, request_id):
     transfer_request = get_object_or_404(Key_transfer, id=request_id)
+
+    if transfer_request.to_user_id != request.user.id:
+        messages.error(request, "Цей запит адресований не вам.")
+        return redirect('incoming_transfers')
 
     if transfer_request.is_expired or transfer_request.is_approved:
         messages.error(request, "Цей запит уже оброблено.")
     else:
         transfer_request.is_expired = True
         transfer_request.save()
-
         key = transfer_request.key
         key.status = 'taken'
         key.save()
-
         messages.success(request, f"Запит на передачу ключа {key.auditory} відхилено.")
 
-    return redirect('admin_transfer_requests')
+    return redirect('incoming_transfers')
 
 
 @login_required
@@ -210,6 +220,7 @@ def profile_edit(request):
 
 
 @login_required
+@require_POST
 def take_key_request(request, key_id):
     key = get_object_or_404(Key, id=key_id)
     existing_request = Key_requests.objects.filter(
@@ -237,6 +248,7 @@ def take_key_request(request, key_id):
 
 
 @login_required
+@require_POST
 def put_key_request(request, key_id):
     key = get_object_or_404(Key, id=key_id)
 
@@ -280,74 +292,74 @@ def admin_key_request(request):
 
 @staff_member_required
 def admin_put_request(request):
-    # expire_old_requests()
+    expire_old_requests()
     active_put_request = Key_return_request.objects.filter(is_approved=False,
                                                            is_expired=False,
                                                            created_at__gte=timezone.now() - timedelta(minutes=15)).select_related('key', 'user')
     return render(request, 'admin_put_requests.html', {'requests': active_put_request})
 
 @staff_member_required
+@require_POST
 def approve_key_request(request, request_id):
-    if request.method == 'POST':
-        key_request = get_object_or_404(Key_requests, id=request_id)
+    key_request = get_object_or_404(Key_requests, id=request_id)
 
-        if key_request.is_valid():
-            key = key_request.key
-            try:
-                key.take_key(key_request.user)
-                key_request.is_approved = True
-                key_request.save()
-                messages.success(request, f"Ключ до {key.auditory} підтверджено.")
-            except ValueError as e:
-                messages.error(request, str(e))
-        else:
-            messages.error(request, "Запит недійсний або вже оброблений.")
+    if key_request.is_valid():
+        key = key_request.key
+        try:
+            key.take_key(key_request.user)
+            key_request.is_approved = True
+            key_request.save()
+            messages.success(request, f"Ключ до {key.auditory} підтверджено.")
+        except ValueError as e:
+            messages.error(request, str(e))
+    else:
+        messages.error(request, "Запит недійсний або вже оброблений.")
 
     return redirect('key_request')
 
 @staff_member_required
+@require_POST
 def approve_return_request(request, request_id):
-    if request.method == 'POST':
-        return_request = get_object_or_404(Key_return_request, id=request_id)
-        if return_request.is_valid():
-            return_request.key.put_key()
+    return_request = get_object_or_404(Key_return_request, id=request_id)
+    if return_request.is_valid():
+        return_request.key.put_key()
 
-            return_request.is_approved = True
-            return_request.save()
-            messages.success(request, f"Ключ {return_request.key.auditory} успішно повернено.")
+        return_request.is_approved = True
+        return_request.save()
+        messages.success(request, f"Ключ {return_request.key.auditory} успішно повернено.")
 
-        else:
-            return_request.is_expired = True
-            return_request.save()
-            messages.error(request, "Час дії запиту минув або вже оброблений.")
+    else:
+        return_request.is_expired = True
+        return_request.save()
+        messages.error(request, "Час дії запиту минув або вже оброблений.")
 
-    return redirect('admin_put_request')
+    return redirect('put_request')
 
 @staff_member_required
+@require_POST
 def reject_key_request(request, request_id):
-    if request.method == 'POST':
-        key_request = get_object_or_404(Key_requests, id=request_id)
-        key_request.is_expired = True
-        key_request.save()
+    key_request = get_object_or_404(Key_requests, id=request_id)
+    key_request.is_expired = True
+    key_request.save()
 
-        key = key_request.key
-        key.status = 'free'
-        key.holder = None
-        key.save()
+    key = key_request.key
+    key.status = 'free'
+    key.holder = None
+    key.save()
 
-        messages.info(request, f"Запит на ключ {key.auditory} відхилено.")
-    return redirect('home')
+    messages.info(request, f"Запит на ключ {key.auditory} відхилено.")
+    return redirect('key_request')
 
 
 @staff_member_required
+@require_POST
 def reject_return_request(request, request_id):
     return_request = get_object_or_404(Key_return_request, id=request_id)
 
-    if request.method == 'POST':
-        return_request.is_expired = True
-        return_request.save()
+    return_request.is_expired = True
+    return_request.save()
 
-        messages.success(request, f"Запит на повернення ключа {return_request.key.auditory} відхилено.")
+    messages.success(request, f"Запит на повернення ключа {return_request.key.auditory} відхилено.")
 
     return redirect('put_request')
 

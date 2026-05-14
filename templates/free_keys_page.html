@@ -1,38 +1,28 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    {% load static %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'style_home.css' %}">
-    <title>Free keys</title>
-</head>
-<body>
-    <header>
-        <nav>
-            <ul>
-                <li><a href="{% url 'home' %}">Назад</a></li>
-            </ul>
-        </nav>
-    </header>
-
+{% extends "base.html" %}
+{% block title %}Вільні аудиторії{% endblock %}
+{% block content %}
+  <div class="page-head">
     <h1>Вільні аудиторії</h1>
-    {% if free_keys %}
-        {% for key in free_keys %}
+    <p>Подайте запит на видачу ключа — рішення приймає адміністратор</p>
+  </div>
 
-            <div class="container">
-                <div class="card">
-                    <p><strong>Аудиторія:</strong> {{ key.auditory }}</p>
-                    <a method="post" href="{% url 'take_key_request' key.id %}" class="btn">Взяти ключ</a>
-                </div>
-
-            </div>
-        {% endfor %}
-    {% else %}
-        <p>Наразі немає вільних ключів.</p>
-    {% endif %}
-<footer>
-    <p>&copy; 2025 Courework.</p>
-</footer>
-</body>
-</html>
+  {% if free_keys %}
+    <div class="card-list">
+      {% for key in free_keys %}
+        <div class="card">
+          <div class="card__body">
+            <p><strong>Аудиторія:</strong> {{ key.auditory }}</p>
+          </div>
+          <div class="card__actions">
+            <form method="post" action="{% url 'take_key_request' key.id %}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn">Подати запит на ключ</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-state">Наразі немає вільних ключів.</p>
+  {% endif %}
+{% endblock %}

@@ -1,48 +1,24 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    {% load static %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile edit</title>
-    <link rel="stylesheet" href="{% static 'style_home.css' %}">
-</head>
-<body>
-<header>
-        <nav>
-            <ul>
-                <li><a href="{% url 'home' %}">Головна</a></li>
-                <li><a href="{% url 'logout' %}">Вихід</a></li>
-            </ul>
-        </nav>
-    </header>
-<main class="container">
-
-<div class="center">
+{% extends "base.html" %}
+{% block title %}Редагування профілю{% endblock %}
+{% block content %}
+  <div class="page-head">
     <h1>Редагувати профіль</h1>
+    <p>Оновіть email; пароль змінюйте лише за потреби</p>
+  </div>
 
-    <form method="POST">
-
-        {% csrf_token %}
-
-        <div class="txt_field">
-            <input type="text" required name="email">
-            <span></span>
-            <label>Емейл</label>
-        </div>
-        <div class="txt_field">
-            <input type="password" required name="password">
-            <span></span>
-            <label>Пароль</label>
-        </div>
-        <button type="submit" class="btn">Зберегти зміни</button>
-        <a href="{% url 'home' %}" class="btn">Повернутися назад</a>
+  <div class="card profile-card">
+    <form method="post" class="form-stack" action="">
+      {% csrf_token %}
+      <div class="field">
+        <label for="id_email">Електронна пошта</label>
+        <input id="id_email" type="email" name="email" required value="{{ user.email }}">
+      </div>
+      <div class="field">
+        <label for="id_password">Новий пароль</label>
+        <input id="id_password" type="password" name="password" autocomplete="new-password" placeholder="Залиште порожнім, щоб не змінювати">
+        <p class="hint">Якщо поле порожнє, пароль залишиться без змін.</p>
+      </div>
+      <button type="submit" class="btn">Зберегти зміни</button>
     </form>
-</div>
-</main>
-<footer>
-    <p>&copy; 2025 Coursework.</p>
-</footer>
-
-</body>
-</html>
+  </div>
+{% endblock %}
