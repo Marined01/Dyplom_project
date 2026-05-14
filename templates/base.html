@@ -2,6 +2,19 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem("theme");
+        var dark =
+          stored === "dark" ||
+          (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    })();
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Головна{% endblock %} — облік ключів</title>
@@ -10,6 +23,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'app.css' %}">
   {% block extra_css %}{% endblock %}
+  <script src="{% static 'theme.js' %}" defer></script>
 </head>
 <body class="{% block body_class %}app-shell{% endblock %}">
   {% if user.is_authenticated %}
@@ -36,6 +50,16 @@
             {% endif %}
           </ul>
           <ul class="site-nav__list site-nav__list--end">
+            <li>
+              <button type="button" class="theme-toggle" aria-label="Перемкнути тему" title="Світла / темна тема">
+                <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                </span>
+                <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </span>
+              </button>
+            </li>
             <li><a href="{% url 'profile' %}">Профіль</a></li>
             <li><a href="{% url 'logout' %}" class="link-muted">Вихід</a></li>
           </ul>
@@ -44,8 +68,16 @@
     </header>
   {% else %}
     <header class="site-header site-header--guest">
-      <div class="site-header__inner">
+      <div class="site-header__inner site-header__inner--guest">
         <span class="brand brand--static">Облік ключів</span>
+        <button type="button" class="theme-toggle" aria-label="Перемкнути тему" title="Світла / темна тема">
+          <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          </span>
+          <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+        </button>
       </div>
     </header>
   {% endif %}
