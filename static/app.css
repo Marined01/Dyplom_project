@@ -448,6 +448,98 @@ html[data-theme="dark"] .theme-toggle__icon--sun {
   font-size: 0.95rem;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  max-width: 42rem;
+}
+
+.search-bar__input {
+  flex: 1 1 12rem;
+  min-width: 0;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--color-border-input);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 1rem;
+  background: var(--color-input-bg);
+  color: var(--color-text);
+}
+
+.search-bar__input:focus {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+  border-color: var(--color-accent);
+}
+
+.search-bar__submit {
+  flex-shrink: 0;
+}
+
+.search-bar__reset {
+  flex-shrink: 0;
+}
+
+.search-bar--filters {
+  max-width: 52rem;
+  align-items: center;
+}
+
+.search-bar__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  margin-right: -0.25rem;
+  align-self: center;
+}
+
+.search-bar__select {
+  min-width: 10.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--color-border-input);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 1rem;
+  background: var(--color-input-bg);
+  color: var(--color-text);
+}
+
+.search-bar__select:focus {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+  border-color: var(--color-accent);
+}
+
+.search-bar__hint-part {
+  font-weight: 400;
+}
+
+.search-bar__hint {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: var(--color-muted);
+}
+
+.data-table td.empty-state {
+  text-align: center;
+  padding: 1.5rem 1rem;
+}
+
 /* Cards */
 .card-list {
   display: flex;

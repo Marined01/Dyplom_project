@@ -56,6 +56,12 @@ class Key(models.Model):
     def __str__(self):
         return f"Авдиторія {self.auditory} — {self.get_status_display()}"
 
+    @property
+    def last_activity_at(self):
+        """Останній відомий час взяття або повернення (для таблиці)."""
+        times = [t for t in (self.take_key_time, self.put_key_time) if t is not None]
+        return max(times) if times else None
+
     def take_key(self, user):
         if self.status == 'taken':
             raise ValueError("Ключ вже зайнятий")
