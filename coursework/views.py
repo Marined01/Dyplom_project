@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -64,8 +65,34 @@ def home_page(request):
 
 @login_required
 def key_list(request):
-    keys = Key.objects.all()
-    return render(request, 'key_list.html', {'keys': keys, 'user': request.user})
+    keys = Key.objects.select_related("holder").all()
+    query = request.GET.get("q", "").strip()
+    status = request.GET.get("status", "").strip()
+    allowed_status = {"", "free", "taken"}
+    if status not in allowed_status:
+        status = ""
+    if status:
+        keys = keys.filter(status=status)
+    if query:
+        keys = keys.filter(
+            Q(auditory__icontains=query)
+            | Q(holder__name__icontains=query)
+            | Q(holder__surname__icontains=query)
+            | Q(holder__email__icontains=query)
+        ).distinct()
+    has_filters = bool(query or status)
+    return render(
+        request,
+        "key_list.html",
+        {
+            "keys": keys,
+            "user": request.user,
+            "query": query,
+            "status_filter": status,
+            "keys_count": keys.count(),
+            "has_filters": has_filters,
+        },
+    )
 
 @login_required
 @require_POST
@@ -79,23 +106,25 @@ def take_key(request, key_id):
         messages.success(request, f"Ключ до аудиторії {key.auditory} взяли")
     except ValueError as e:
         messages.error(request, e)
-    # referer = request.META.get('HTTP_REFERER')
-    # return HttpResponseRedirect(referer)
-    return redirect('home')
+    return redirect('key_list')
+
 
 @login_required
 @require_POST
 def put_key(request, key_id):
-    try:
-        key = Key.objects.get(id=key_id)
-    except Key.DoesNotExist:
-        raise Http404("Key does not exist")
+    key = get_object_or_404(Key, id=key_id)
+    if key.holder_id != request.user.id and not request.user.is_staff:
+        messages.error(
+            request,
+            "Повернути ключ може лише той, хто його зараз тримає, або персонал.",
+        )
+        return redirect("key_list")
     try:
         key.put_key()
         messages.success(request, f"Ключ до аудиторії {key.auditory} поклали")
     except ValueError as e:
         messages.error(request, e)
-    return redirect('home')
+    return redirect("key_list")
 
 # views.py
 @login_required
@@ -189,15 +218,19 @@ def reject_transfer_request(request, request_id):
 
 @login_required
 def free_keys(request):
-    free_keys = Key.objects.filter(
-        status='free'
+    free_keys = Key.objects.filter(status="free").order_by("auditory")
+    query = request.GET.get("q", "").strip()
+    if query:
+        free_keys = free_keys.filter(auditory__icontains=query)
+    return render(
+        request,
+        "free_keys_page.html",
+        {
+            "free_keys": free_keys,
+            "query": query,
+            "free_keys_count": free_keys.count(),
+        },
     )
-    # .exclude(
-    #     key_requests__is_approved=False,
-    #     key_requests__is_expired=False,
-    #     key_requests__created_at__gte=timezone.now() - timedelta(minutes=15)
-    # )
-    return render(request, 'free_keys_page.html', {'free_keys': free_keys})
 
 @login_required
 def profile(request):
