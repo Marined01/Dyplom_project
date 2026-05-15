@@ -1,10 +1,52 @@
 {% extends "base.html" %}
-{% block title %}Усі ключі{% endblock %}
+{% block title %}{% if query %}Пошук ключів{% else %}Ключі{% endif %}{% endblock %}
 {% block content %}
   <div class="page-head">
-    <h1>Список ключів</h1>
-    <p>Швидка видача та повернення (для демонстрації або ролі з доступом)</p>
+    <h1>Ключі</h1>
+    <p>
+      Пошук за аудиторією або іменем, фільтр за статусом.
+      <strong>Взяти</strong> вільний ключ може будь-який авторизований користувач.
+      <strong>Повернути</strong> зайнятий - лише той хто його має або персонал.
+      <strong>Передати</strong> іншому - лише тримач.
+    </p>
   </div>
+
+  <form class="search-bar search-bar--filters" method="get" action="{% url 'key_list' %}" role="search">
+    <label class="visually-hidden" for="id_search_q">Пошук</label>
+    <input
+      id="id_search_q"
+      class="search-bar__input"
+      type="search"
+      name="q"
+      value="{{ query }}"
+      placeholder="Аудиторія або ім’я / прізвище"
+      autocomplete="off"
+      maxlength="120"
+    >
+    <label class="search-bar__label" for="id_status">Статус</label>
+    <select id="id_status" class="search-bar__select" name="status" aria-label="Фільтр за статусом">
+      <option value="" {% if not status_filter %}selected{% endif %}>Усі статуси</option>
+      <option value="free" {% if status_filter == 'free' %}selected{% endif %}>Вільна</option>
+      <option value="taken" {% if status_filter == 'taken' %}selected{% endif %}>Зайнята</option>
+    </select>
+    <button type="submit" class="btn search-bar__submit">Застосувати</button>
+    {% if has_filters %}
+      <a href="{% url 'key_list' %}" class="btn btn--secondary search-bar__reset">Скинути фільтри</a>
+    {% endif %}
+  </form>
+
+  {% if has_filters %}
+    <p class="search-bar__hint">
+      Знайдено записів: <strong>{{ keys_count }}</strong>
+      {% if query %}<span class="search-bar__hint-part">· текст «{{ query }}»</span>{% endif %}
+      {% if status_filter %}
+        <span class="search-bar__hint-part">
+          · статус:
+          {% if status_filter == 'free' %}Вільна{% elif status_filter == 'taken' %}Зайнята{% endif %}
+        </span>
+      {% endif %}
+    </p>
+  {% endif %}
 
   <div class="table-wrap">
     <table class="data-table">
@@ -13,9 +55,8 @@
           <th>Аудиторія</th>
           <th>Статус</th>
           <th>Хто тримає</th>
-          <th>Час взяття</th>
-          <th>Час повернення</th>
-          <th>Дія</th>
+          <th>Остання дія</th>
+          <th>Дії</th>
         </tr>
       </thead>
       <tbody>
@@ -24,8 +65,7 @@
             <td>{{ key.auditory }}</td>
             <td>{{ key.get_status_display }}</td>
             <td>{% if key.holder %}{{ key.holder }}{% else %}—{% endif %}</td>
-            <td>{% if key.take_key_time %}{{ key.take_key_time }}{% else %}—{% endif %}</td>
-            <td>{% if key.put_key_time %}{{ key.put_key_time }}{% else %}—{% endif %}</td>
+            <td>{% if key.last_activity_at %}{{ key.last_activity_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td>
             <td>
               {% if key.status == 'free' %}
                 <form method="post" action="{% url 'take_key' key.id %}" class="inline-form">
@@ -33,15 +73,26 @@
                   <button type="submit" class="btn">Взяти</button>
                 </form>
               {% elif key.status == 'taken' %}
-                <form method="post" action="{% url 'put_key' key.id %}" class="inline-form">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn--secondary">Повернути</button>
-                </form>
-                <a href="{% url 'transfer_key' key.id %}" class="btn btn--ghost">Передати</a>
+                {% if key.holder_id == user.id or user.is_staff %}
+                  <form method="post" action="{% url 'put_key' key.id %}" class="inline-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn--secondary">Повернути</button>
+                  </form>
+                {% endif %}
+                {% if key.holder_id == user.id %}
+                  <a href="{% url 'transfer_key' key.id %}" class="btn btn--ghost">Передати</a>
+                {% endif %}
+                {% if key.holder_id != user.id and not user.is_staff %}
+                  <span class="card__meta">Немає доступних дій</span>
+                {% endif %}
               {% else %}
                 <span class="card__meta">Очікує підтвердження</span>
               {% endif %}
             </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="empty-state">Нічого не знайдено. Спробуйте інший запит або <a href="{% url 'key_list' %}">скинути фільтр</a>.</td>
           </tr>
         {% endfor %}
       </tbody>
