@@ -3,8 +3,30 @@
 {% block content %}
   <div class="page-head">
     <h1>Вільні аудиторії</h1>
-    <p>Подайте запит на видачу ключа — рішення приймає адміністратор</p>
+    <p>Подайте запит на видачу ключа — рішення приймає адміністратор.</p>
   </div>
+
+  <form class="search-bar" method="get" action="{% url 'free_keys' %}" role="search">
+    <label class="visually-hidden" for="id_free_keys_q">Номер аудиторії</label>
+    <input
+      id="id_free_keys_q"
+      class="search-bar__input"
+      type="search"
+      name="q"
+      value="{{ query }}"
+      placeholder="Номер аудиторії, напр. 101"
+      autocomplete="off"
+      maxlength="40"
+    >
+    <button type="submit" class="btn search-bar__submit">Шукати</button>
+    {% if query %}
+      <a href="{% url 'free_keys' %}" class="btn btn--secondary search-bar__reset">Усі вільні</a>
+    {% endif %}
+  </form>
+
+  {% if query %}
+    <p class="search-bar__hint">Знайдено вільних: <strong>{{ free_keys_count }}</strong> (за запитом «{{ query }}»)</p>
+  {% endif %}
 
   {% if free_keys %}
     <div class="card-list">
@@ -23,6 +45,10 @@
       {% endfor %}
     </div>
   {% else %}
-    <p class="empty-state">Наразі немає вільних ключів.</p>
+    {% if query %}
+      <p class="empty-state">За номером «{{ query }}» серед вільних аудиторій нічого не знайдено. <a href="{% url 'free_keys' %}">Показати всі вільні</a>.</p>
+    {% else %}
+      <p class="empty-state">Наразі немає вільних ключів.</p>
+    {% endif %}
   {% endif %}
 {% endblock %}
