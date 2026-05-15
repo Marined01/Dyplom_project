@@ -58,7 +58,7 @@ class Key(models.Model):
 
     @property
     def last_activity_at(self):
-        """Останній відомий час взяття або повернення (для таблиці)."""
+        # Останній час взяття або повернення
         times = [t for t in (self.take_key_time, self.put_key_time) if t is not None]
         return max(times) if times else None
 
