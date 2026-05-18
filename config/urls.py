@@ -37,5 +37,6 @@ urlpatterns = [
     path('reject_transfer/<int:request_id>/', views.reject_transfer_request, name='reject_transfer'),
 
     path('action_view/', views.action_view, name='action_view'),
+    path('action_view/export/', views.action_view_export, name='action_view_export'),
 
 ]
