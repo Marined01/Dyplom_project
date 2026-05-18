@@ -47,10 +47,10 @@ def _user_search_q(prefix, query):
 
 
 def build_action_logs(query="", action_type="", date_from="", date_to=""):
-    """
-    Повертає список dict, відсортований за часом (новіші зверху).
-    Кожен запис: timestamp, action_type, action_label, auditory, participants, summary.
-    """
+    # """
+    # Повертає список dict, відсортований за часом (новіші зверху).
+    # Кожен запис: timestamp, action_type, action_label, auditory, participants, summary.
+    # """
     query = (query or "").strip()
     action_type = (action_type or "").strip()
     allowed_types = {"", "take", "return", "transfer"}
@@ -132,7 +132,7 @@ def build_action_logs(query="", action_type="", date_from="", date_to=""):
 
 
 def parse_journal_filters(request):
-    """Параметри фільтрів журналу з GET-запиту."""
+    # """Параметри фільтрів журналу з GET-запиту."""
     query = request.GET.get("q", "").strip()
     action_type = request.GET.get("action", "").strip()
     date_from = request.GET.get("date_from", "").strip()
@@ -144,7 +144,7 @@ def parse_journal_filters(request):
 
 
 def journal_filter_query_string(query, action_type, date_from, date_to):
-    """Рядок для посилань (пагінація, експорт) без параметра page."""
+    # """Рядок для посилань (пагінація, експорт) без параметра page."""
     params = {}
     if query:
         params["q"] = query
@@ -158,7 +158,7 @@ def journal_filter_query_string(query, action_type, date_from, date_to):
 
 
 def export_action_logs_csv(logs):
-    """Відповідь із CSV-файлом журналу (UTF-8 з BOM для Excel)."""
+    # """Відповідь із CSV-файлом журналу (UTF-8 з BOM для Excel)."""
     buffer = StringIO()
     writer = csv.writer(buffer)
     writer.writerow(
