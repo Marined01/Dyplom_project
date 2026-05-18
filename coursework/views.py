@@ -3,13 +3,33 @@ from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib import messages
 from coursework.models import Key, User, Key_requests, Key_return_request, Key_transfer
+from coursework.journal import (
+    ACTION_TYPES,
+    JOURNAL_PER_PAGE,
+    build_action_logs,
+    export_action_logs_csv,
+    journal_filter_query_string,
+    parse_journal_filters,
+)
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.admin.views.decorators import staff_member_required
+
+def _redirect_after_form(request, default_view="home"):
+    """Безпечний редірект після POST (поле next у формі)."""
+    next_url = request.POST.get("next", "").strip()
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}
+    ):
+        return redirect(next_url)
+    return redirect(default_view)
+
 
 def registration_page(request):
     if request.method == 'POST':
@@ -109,22 +129,17 @@ def take_key(request, key_id):
     return redirect('key_list')
 
 
-@login_required
+@staff_member_required
 @require_POST
 def put_key(request, key_id):
+    """Пряме повернення ключа — лише для персоналу (підтвердження без окремого запиту)."""
     key = get_object_or_404(Key, id=key_id)
-    if key.holder_id != request.user.id and not request.user.is_staff:
-        messages.error(
-            request,
-            "Повернути ключ може лише той, хто його зараз тримає, або персонал.",
-        )
-        return redirect("key_list")
     try:
         key.put_key()
-        messages.success(request, f"Ключ до аудиторії {key.auditory} поклали")
+        messages.success(request, f"Ключ до аудиторії {key.auditory} повернено.")
     except ValueError as e:
         messages.error(request, e)
-    return redirect("key_list")
+    return _redirect_after_form(request, default_view="key_list")
 
 # views.py
 @login_required
@@ -285,20 +300,28 @@ def take_key_request(request, key_id):
 def put_key_request(request, key_id):
     key = get_object_or_404(Key, id=key_id)
 
+    if key.holder_id != request.user.id:
+        messages.error(request, "Ви не тримаєте цей ключ.")
+        return _redirect_after_form(request)
+
+    if key.status != "taken":
+        messages.error(request, "Цей ключ не на руках — повернення недоступне.")
+        return _redirect_after_form(request)
+
     existing_request = Key_return_request.objects.filter(
         user=request.user,
         key=key,
         is_expired=False,
-        is_approved=False
+        is_approved=False,
     ).exists()
 
     if existing_request:
         messages.error(request, "Ви вже подали запит на повернення цього ключа.")
-        return redirect('home')
+        return _redirect_after_form(request)
 
     Key_return_request.objects.create(user=request.user, key=key)
-    messages.success(request, "Запит на повернення ключа надіслано.")
-    return redirect('home')
+    messages.success(request, "Запит на повернення ключа надіслано адміністратору.")
+    return _redirect_after_form(request)
 
 def expire_old_requests():
     fifteen_minutes_ago = timezone.now() - timedelta(minutes=15)
@@ -398,25 +421,46 @@ def reject_return_request(request, request_id):
 
 @staff_member_required
 def action_view(request):
-    logs = []
+    query, action_type, date_from, date_to = parse_journal_filters(request)
 
-    for req in Key_requests.objects.filter(is_approved=True, is_expired=False):
-        logs.append({
-            'timestamp': req.created_at,
-            'text': f"{req.user.name} {req.user.surname} взяв ключ до {req.key.auditory}",
-        })
+    logs = build_action_logs(
+        query=query,
+        action_type=action_type,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    paginator = Paginator(logs, JOURNAL_PER_PAGE)
+    page_obj = paginator.get_page(request.GET.get("page"))
 
-    for ret in Key_return_request.objects.filter(is_approved=True, is_expired=False):
-        logs.append({
-            'timestamp': ret.created_at,
-            'text': f"{ret.user.name} {ret.user.surname} поклав ключ від {ret.key.auditory}",
-        })
+    has_filters = bool(query or action_type or date_from or date_to)
+    filter_query = journal_filter_query_string(
+        query, action_type, date_from, date_to
+    )
 
-    for tr in Key_transfer.objects.filter(is_approved=True, is_expired=False):
-        logs.append({
-            'timestamp': tr.created_at,
-            'text': f"{tr.from_user.name} {tr.from_user.surname} передав ключ від {tr.key.auditory} користувачу " f"{tr.to_user.name} {tr.to_user.surname}"})
+    return render(
+        request,
+        "action_view.html",
+        {
+            "page_obj": page_obj,
+            "query": query,
+            "action_filter": action_type,
+            "date_from": date_from,
+            "date_to": date_to,
+            "action_types": ACTION_TYPES,
+            "logs_count": paginator.count,
+            "has_filters": has_filters,
+            "filter_query": filter_query,
+        },
+    )
 
-    logs.sort(key=lambda x: x['timestamp'], reverse=True)
 
-    return render(request, 'action_view.html', {'logs': logs})
+@staff_member_required
+def action_view_export(request):
+    query, action_type, date_from, date_to = parse_journal_filters(request)
+    logs = build_action_logs(
+        query=query,
+        action_type=action_type,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    return export_action_logs_csv(logs)

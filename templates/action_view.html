@@ -3,21 +3,134 @@
 {% block content %}
   <div class="page-head">
     <h1>Журнал дій</h1>
-    <p>Підтверджені операції з ключами</p>
+    <p>
+      Підтверджені операції: видача, повернення та передача ключів.
+<!--      На екрані показується по <strong>{{ page_obj.paginator.per_page }}</strong> записів на сторінку;-->
+      Експорт CSV завантажує <strong>усі</strong> записи за поточними фільтрами.
+    </p>
   </div>
 
-  {% if logs %}
-    <div class="card-list">
-      {% for log in logs %}
-        <div class="card">
-          <div class="card__body">
-            <p class="card__meta"><strong>Час:</strong> {{ log.timestamp|date:"d.m.Y H:i" }}</p>
-            <p><strong>Подія:</strong> {{ log.text }}</p>
-          </div>
-        </div>
+  <form class="search-bar search-bar--filters search-bar--journal" method="get" action="{% url 'action_view' %}" role="search">
+    <label class="visually-hidden" for="id_journal_q">Пошук</label>
+    <input
+      id="id_journal_q"
+      class="search-bar__input"
+      type="search"
+      name="q"
+      value="{{ query }}"
+      placeholder="Аудиторія, ім’я, прізвище або email"
+      autocomplete="off"
+      maxlength="120"
+    >
+
+    <label class="search-bar__label" for="id_journal_action">Тип</label>
+    <select id="id_journal_action" class="search-bar__select" name="action" aria-label="Тип події">
+      {% for value, label in action_types %}
+        <option value="{{ value }}" {% if action_filter == value %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
-    </div>
-  {% else %}
-    <p class="empty-state">Немає записів.</p>
+    </select>
+
+    <label class="search-bar__label" for="id_date_from">Від</label>
+    <input
+      id="id_date_from"
+      class="search-bar__input search-bar__input--date"
+      type="date"
+      name="date_from"
+      value="{{ date_from }}"
+      aria-label="Дата від"
+    >
+
+    <label class="search-bar__label" for="id_date_to">До</label>
+    <input
+      id="id_date_to"
+      class="search-bar__input search-bar__input--date"
+      type="date"
+      name="date_to"
+      value="{{ date_to }}"
+      aria-label="Дата до"
+    >
+
+    <button type="submit" class="btn search-bar__submit">Застосувати</button>
+    {% if has_filters %}
+      <a href="{% url 'action_view' %}" class="btn btn--secondary search-bar__reset">Скинути</a>
+    {% endif %}
+  </form>
+
+  <div class="journal-toolbar">
+    <p class="search-bar__hint journal-toolbar__summary">
+      Усього записів: <strong>{{ logs_count }}</strong>
+      {% if page_obj.paginator.num_pages > 1 %}
+        · сторінка <strong>{{ page_obj.number }}</strong> з <strong>{{ page_obj.paginator.num_pages }}</strong>
+      {% endif %}
+    </p>
+    {% if logs_count %}
+      <a
+        href="{% url 'action_view_export' %}{% if filter_query %}?{{ filter_query }}{% endif %}"
+        class="btn btn--secondary"
+      >Завантажити CSV</a>
+    {% endif %}
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table data-table--journal">
+      <thead>
+        <tr>
+          <th>Дата й час</th>
+          <th>Тип</th>
+          <th>Аудиторія</th>
+          <th>Учасники</th>
+          <th>Опис</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in page_obj %}
+          <tr>
+            <td class="journal-cell--time">{{ log.timestamp|date:"d.m.Y H:i" }}</td>
+            <td>
+              <span class="action-badge action-badge--{{ log.action_type }}">{{ log.action_label }}</span>
+            </td>
+            <td><strong>{{ log.auditory }}</strong></td>
+            <td>{{ log.participants }}</td>
+            <td class="journal-cell--summary">{{ log.summary }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="empty-state">
+              {% if has_filters %}
+                За обраними умовами записів немає. <a href="{% url 'action_view' %}">Скинути фільтри</a>.
+              {% else %}
+                Підтверджених операцій поки немає.
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Сторінки журналу">
+      {% if page_obj.has_previous %}
+        <a
+          class="pagination__link"
+          href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page_obj.previous_page_number }}"
+        >← Попередня</a>
+      {% else %}
+        <span class="pagination__link pagination__link--disabled">← Попередня</span>
+      {% endif %}
+
+      <span class="pagination__status">
+        {{ page_obj.start_index }}–{{ page_obj.end_index }} з {{ logs_count }}
+      </span>
+
+      {% if page_obj.has_next %}
+        <a
+          class="pagination__link"
+          href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page_obj.next_page_number }}"
+        >Наступна →</a>
+      {% else %}
+        <span class="pagination__link pagination__link--disabled">Наступна →</span>
+      {% endif %}
+    </nav>
   {% endif %}
 {% endblock %}
