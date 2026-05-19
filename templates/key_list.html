@@ -4,10 +4,10 @@
   <div class="page-head">
     <h1>Ключі</h1>
     <p>
-      Пошук за аудиторією або іменем, фільтр за статусом.
-      <strong>Взяти</strong> вільний ключ може будь-який авторизований користувач.
-      <strong>Повернути</strong> зайнятий — тримач подає запит адміну; персонал може повернути одразу.
-      <strong>Передати</strong> іншому - лише тримач.
+      Пошук за аудиторією або іменем, фільтр за статусом ключа.
+      <strong>Вільна</strong> — можна взяти;
+      <strong>Зайнята</strong> — у користувача на руках (повернення — через запит адміну);
+      <strong>Очікує</strong> — подано запит на видачу, адмін ще не підтвердив (не плутати з запитом на повернення).
     </p>
   </div>
 
@@ -28,6 +28,7 @@
       <option value="" {% if not status_filter %}selected{% endif %}>Усі статуси</option>
       <option value="free" {% if status_filter == 'free' %}selected{% endif %}>Вільна</option>
       <option value="taken" {% if status_filter == 'taken' %}selected{% endif %}>Зайнята</option>
+      <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Очікує (запит на видачу)</option>
     </select>
     <button type="submit" class="btn search-bar__submit">Застосувати</button>
     {% if has_filters %}
@@ -42,7 +43,7 @@
       {% if status_filter %}
         <span class="search-bar__hint-part">
           · статус:
-          {% if status_filter == 'free' %}Вільна{% elif status_filter == 'taken' %}Зайнята{% endif %}
+          {% if status_filter == 'free' %}Вільна{% elif status_filter == 'taken' %}Зайнята{% elif status_filter == 'pending' %}Очікує{% endif %}
         </span>
       {% endif %}
     </p>
@@ -54,7 +55,7 @@
         <tr>
           <th>Аудиторія</th>
           <th>Статус</th>
-          <th>Хто тримає</th>
+          <th>В руках у</th>
           <th>Остання дія</th>
           <th>Дії</th>
         </tr>
@@ -92,8 +93,12 @@
                 {% if key.holder_id != user.id and not user.is_staff %}
                   <span class="card__meta">Немає доступних дій</span>
                 {% endif %}
-              {% else %}
-                <span class="card__meta">Очікує підтвердження</span>
+              {% elif key.status == 'pending' %}
+                {% if user.is_staff %}
+                  <a href="{% url 'admin_requests' %}?type=take" class="btn btn--ghost">Черга запитів</a>
+                {% else %}
+                  <span class="card__meta">Очікує підтвердження видачі</span>
+                {% endif %}
               {% endif %}
             </td>
           </tr>

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Дашборд{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1>Дашборд</h1>
+    <p>
+      <strong>Ключі</strong> — поточний стан аудиторій у таблиці (вільна / зайнята / очікує видачі).
+      <strong>Запити адміна</strong> — окрема черга на підтвердження видачі або повернення (ключ при поверненні лишається «зайнятим», доки адмін не підтвердить).
+    </p>
+  </div>
+
+  <section class="dashboard-section" aria-labelledby="dashboard-keys-heading">
+    <h2 id="dashboard-keys-heading" class="dashboard-section__title">Ключі</h2>
+    <div class="stat-cards">
+      {% for card in key_cards %}
+        {% if card.href %}
+          <a href="{{ card.href }}" class="stat-card stat-card--{{ card.variant }}">
+            <span class="stat-card__value">{{ card.value }}</span>
+            <span class="stat-card__label">{{ card.label }}</span>
+            {% if card.hint %}<span class="stat-card__hint">{{ card.hint }}</span>{% endif %}
+          </a>
+        {% else %}
+          <div class="stat-card stat-card--{{ card.variant }} stat-card--static">
+            <span class="stat-card__value">{{ card.value }}</span>
+            <span class="stat-card__label">{{ card.label }}</span>
+            {% if card.hint %}<span class="stat-card__hint">{{ card.hint }}</span>{% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="dashboard-section" aria-labelledby="dashboard-queue-heading">
+    <h2 id="dashboard-queue-heading" class="dashboard-section__title">Запити адміна</h2>
+    <div class="stat-cards">
+      {% for card in queue_cards %}
+        {% if card.href %}
+          <a href="{{ card.href }}" class="stat-card stat-card--{{ card.variant }}">
+            <span class="stat-card__value">{{ card.value }}</span>
+            <span class="stat-card__label">{{ card.label }}</span>
+            {% if card.hint %}<span class="stat-card__hint">{{ card.hint }}</span>{% endif %}
+          </a>
+        {% else %}
+          <div class="stat-card stat-card--{{ card.variant }} stat-card--static">
+            <span class="stat-card__value">{{ card.value }}</span>
+            <span class="stat-card__label">{{ card.label }}</span>
+            {% if card.hint %}<span class="stat-card__hint">{{ card.hint }}</span>{% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if pending_take or pending_return %}
+    <p class="dashboard-alert">
+      {% if pending_take and pending_return %}
+        Є нові запити на видачу та повернення — відкрийте <a href="{% url 'admin_requests' %}">чергу запитів</a>.
+      {% elif pending_take %}
+        Є нові запити на видачу ({{ pending_take }}) — <a href="{% url 'admin_requests' %}">переглянути чергу</a>.
+      {% else %}
+        Є нові запити на повернення ({{ pending_return }}) — <a href="{% url 'admin_requests' %}">переглянути чергу</a>.
+      {% endif %}
+    </p>
+  {% endif %}
+{% endblock %}

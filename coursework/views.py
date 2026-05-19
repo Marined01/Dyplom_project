@@ -10,6 +10,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib import messages
 from coursework.models import Key, User, Key_requests, Key_return_request, Key_transfer
+from django.urls import reverse
+
+from coursework.admin_requests import (
+    build_admin_request_queue,
+    expire_old_requests,
+    get_pending_request_counts,
+    normalize_request_type,
+)
+from coursework.dashboard import get_dashboard_stats
 from coursework.journal import (
     ACTION_TYPES,
     JOURNAL_PER_PAGE,
@@ -85,10 +94,11 @@ def home_page(request):
 
 @login_required
 def key_list(request):
+    expire_old_requests()
     keys = Key.objects.select_related("holder").all()
     query = request.GET.get("q", "").strip()
     status = request.GET.get("status", "").strip()
-    allowed_status = {"", "free", "taken"}
+    allowed_status = {"", "free", "taken", "pending"}
     if status not in allowed_status:
         status = ""
     if status:
@@ -313,6 +323,7 @@ def put_key_request(request, key_id):
         key=key,
         is_expired=False,
         is_approved=False,
+        created_at__gte=timezone.now() - timedelta(minutes=15),
     ).exists()
 
     if existing_request:
@@ -323,36 +334,40 @@ def put_key_request(request, key_id):
     messages.success(request, "Запит на повернення ключа надіслано адміністратору.")
     return _redirect_after_form(request)
 
-def expire_old_requests():
-    fifteen_minutes_ago = timezone.now() - timedelta(minutes=15)
+@staff_member_required
+def admin_requests(request):
+    expire_old_requests()
+    request_type = normalize_request_type(request.GET.get("type", "all"))
+    counts = get_pending_request_counts()
+    items = build_admin_request_queue(request_type)
 
-    Key_requests.objects.filter(
-        is_approved=False,
-        is_expired=False,
-        created_at__lt=fifteen_minutes_ago
-    ).update(is_expired=True)
+    type_labels = {
+        "all": "Усі",
+        "take": "Видача",
+        "return": "Повернення",
+    }
 
-    Key_return_request.objects.filter(
-        is_approved=False,
-        is_expired=False,
-        created_at__lt=fifteen_minutes_ago
-    ).update(is_expired=True)
+    return render(
+        request,
+        "admin_requests.html",
+        {
+            "items": items,
+            "request_type": request_type,
+            "type_labels": type_labels,
+            "counts": counts,
+            "total_count": counts["take"] + counts["return"],
+        },
+    )
+
 
 @staff_member_required
 def admin_key_request(request):
-    expire_old_requests()
-    active_take_request = Key_requests.objects.filter(is_approved=False,
-                                                      is_expired=False,
-                                                      created_at__gte=timezone.now() - timedelta(minutes=15)).select_related('key', 'user')
-    return render(request, 'admin_key_requests.html', {'requests': active_take_request})
+    return redirect("admin_requests")
+
 
 @staff_member_required
 def admin_put_request(request):
-    expire_old_requests()
-    active_put_request = Key_return_request.objects.filter(is_approved=False,
-                                                           is_expired=False,
-                                                           created_at__gte=timezone.now() - timedelta(minutes=15)).select_related('key', 'user')
-    return render(request, 'admin_put_requests.html', {'requests': active_put_request})
+    return redirect("admin_requests")
 
 @staff_member_required
 @require_POST
@@ -371,7 +386,7 @@ def approve_key_request(request, request_id):
     else:
         messages.error(request, "Запит недійсний або вже оброблений.")
 
-    return redirect('key_request')
+    return redirect("admin_requests")
 
 @staff_member_required
 @require_POST
@@ -389,7 +404,7 @@ def approve_return_request(request, request_id):
         return_request.save()
         messages.error(request, "Час дії запиту минув або вже оброблений.")
 
-    return redirect('put_request')
+    return redirect("admin_requests")
 
 @staff_member_required
 @require_POST
@@ -404,7 +419,7 @@ def reject_key_request(request, request_id):
     key.save()
 
     messages.info(request, f"Запит на ключ {key.auditory} відхилено.")
-    return redirect('key_request')
+    return redirect("admin_requests")
 
 
 @staff_member_required
@@ -417,7 +432,26 @@ def reject_return_request(request, request_id):
 
     messages.success(request, f"Запит на повернення ключа {return_request.key.auditory} відхилено.")
 
-    return redirect('put_request')
+    return redirect("admin_requests")
+
+def _dashboard_card_hrefs(cards):
+    for card in cards:
+        if card.get("url_name"):
+            href = reverse(card["url_name"])
+            if card.get("query"):
+                href = f"{href}?{card['query']}"
+            card["href"] = href
+        else:
+            card["href"] = None
+
+
+@staff_member_required
+def dashboard(request):
+    stats = get_dashboard_stats()
+    _dashboard_card_hrefs(stats["key_cards"])
+    _dashboard_card_hrefs(stats["queue_cards"])
+    return render(request, "dashboard.html", stats)
+
 
 @staff_member_required
 def action_view(request):
