@@ -38,6 +38,8 @@ urlpatterns = [
     path('reject_transfer/<int:request_id>/', views.reject_transfer_request, name='reject_transfer'),
 
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('users/', views.admin_user_list, name='admin_user_list'),
+    path('users/<int:user_id>/edit/', views.admin_user_edit, name='admin_user_edit'),
     path('action_view/', views.action_view, name='action_view'),
     path('action_view/export/', views.action_view_export, name='action_view_export'),
 

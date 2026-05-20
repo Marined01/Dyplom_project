@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Користувачі{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1>Користувачі</h1>
+    <p>Довідник облікових записів: пошук, статус, ключі на руках.</p>
+  </div>
+
+  <form class="search-bar search-bar--filters" method="get" action="{% url 'admin_user_list' %}" role="search">
+    <label class="visually-hidden" for="id_user_q">Пошук</label>
+    <input
+      id="id_user_q"
+      class="search-bar__input"
+      type="search"
+      name="q"
+      value="{{ query }}"
+      placeholder="Email, ім’я або прізвище"
+      autocomplete="off"
+      maxlength="120"
+    >
+    <label class="search-bar__label" for="id_active">Статус</label>
+    <select id="id_active" class="search-bar__select" name="active">
+      <option value="" {% if not active_filter %}selected{% endif %}>Усі</option>
+      <option value="active" {% if active_filter == 'active' %}selected{% endif %}>Активні</option>
+      <option value="inactive" {% if active_filter == 'inactive' %}selected{% endif %}>Заблоковані</option>
+    </select>
+    <label class="search-bar__label" for="id_staff">Роль</label>
+    <select id="id_staff" class="search-bar__select" name="staff">
+      <option value="" {% if not staff_filter %}selected{% endif %}>Усі</option>
+      <option value="regular" {% if staff_filter == 'regular' %}selected{% endif %}>Звичайні</option>
+      <option value="staff" {% if staff_filter == 'staff' %}selected{% endif %}>Персонал</option>
+    </select>
+    <button type="submit" class="btn search-bar__submit">Застосувати</button>
+    {% if has_filters %}
+      <a href="{% url 'admin_user_list' %}" class="btn btn--secondary search-bar__reset">Скинути</a>
+    {% endif %}
+  </form>
+
+  {% if has_filters %}
+    <p class="search-bar__hint">Знайдено: <strong>{{ users_total }}</strong></p>
+  {% endif %}
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Прізвище, ім’я</th>
+          <th>Email</th>
+          <th>Ключів</th>
+          <th>Статус</th>
+          <th>Роль</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+          <tr{% if not u.is_active %} class="data-table__row--muted"{% endif %}>
+            <td>{{ u.surname }} {{ u.name }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.keys_held_count }}</td>
+            <td>
+              {% if u.is_active %}
+                <span class="status-pill status-pill--success">Активний</span>
+              {% else %}
+                <span class="status-pill status-pill--muted">Заблокований</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.is_staff %}
+                <span class="status-pill status-pill--info">Персонал</span>
+              {% else %}
+                <span class="card__meta">Користувач</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'admin_user_edit' u.id %}" class="btn btn--ghost btn--sm">Редагувати</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="empty-state">Користувачів не знайдено.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Сторінки">
+      {% if page_obj.has_previous %}
+        <a class="pagination__link" href="?page={{ page_obj.previous_page_number }}{% if filter_qs %}&amp;{{ filter_qs }}{% endif %}">← Попередня</a>
+      {% else %}
+        <span class="pagination__link pagination__link--disabled">← Попередня</span>
+      {% endif %}
+      <span class="pagination__status">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a class="pagination__link" href="?page={{ page_obj.next_page_number }}{% if filter_qs %}&amp;{{ filter_qs }}{% endif %}">Наступна →</a>
+      {% else %}
+        <span class="pagination__link pagination__link--disabled">Наступна →</span>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

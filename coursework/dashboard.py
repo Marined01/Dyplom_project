@@ -95,7 +95,8 @@ def get_dashboard_stats():
         {
             "label": "Активних користувачів",
             "value": users_active,
-            "url_name": None,
+            "url_name": "admin_user_list",
+            "query": "active=active",
             "variant": "neutral",
         },
     ]
