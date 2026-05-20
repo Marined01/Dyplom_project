@@ -10,6 +10,20 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib import messages
 from coursework.models import Key, User, Key_requests, Key_return_request, Key_transfer
+from django.urls import reverse
+
+from coursework.admin_requests import (
+    build_admin_request_queue,
+    expire_old_requests,
+    get_pending_request_counts,
+    normalize_request_type,
+)
+from coursework.key_metrics import (
+    LONG_HELD_DAYS,
+    apply_key_sort,
+    apply_long_held_filter,
+)
+from coursework.dashboard import get_dashboard_stats
 from coursework.journal import (
     ACTION_TYPES,
     JOURNAL_PER_PAGE,
@@ -85,10 +99,11 @@ def home_page(request):
 
 @login_required
 def key_list(request):
+    expire_old_requests()
     keys = Key.objects.select_related("holder").all()
     query = request.GET.get("q", "").strip()
     status = request.GET.get("status", "").strip()
-    allowed_status = {"", "free", "taken"}
+    allowed_status = {"", "free", "taken", "pending"}
     if status not in allowed_status:
         status = ""
     if status:
@@ -100,7 +115,18 @@ def key_list(request):
             | Q(holder__surname__icontains=query)
             | Q(holder__email__icontains=query)
         ).distinct()
-    has_filters = bool(query or status)
+
+    long_held = request.GET.get("long_held", "").strip() == "1"
+    if request.user.is_staff and long_held:
+        keys = apply_long_held_filter(keys, True)
+
+    sort = request.GET.get("sort", "").strip()
+    if request.user.is_staff:
+        keys = apply_key_sort(keys, sort)
+    else:
+        keys = keys.order_by("auditory")
+
+    has_filters = bool(query or status or long_held or sort)
     return render(
         request,
         "key_list.html",
@@ -109,12 +135,15 @@ def key_list(request):
             "user": request.user,
             "query": query,
             "status_filter": status,
+            "sort": sort if request.user.is_staff else "",
+            "long_held": long_held and request.user.is_staff,
+            "long_held_days": LONG_HELD_DAYS,
             "keys_count": keys.count(),
             "has_filters": has_filters,
         },
     )
 
-@login_required
+@staff_member_required
 @require_POST
 def take_key(request, key_id):
     try:
@@ -123,10 +152,10 @@ def take_key(request, key_id):
         raise Http404("Key does not exist")
     try:
         key.take_key(request.user)
-        messages.success(request, f"Ключ до аудиторії {key.auditory} взяли")
+        messages.success(request, f"Ключ до аудиторії {key.auditory} видано.")
     except ValueError as e:
         messages.error(request, e)
-    return redirect('key_list')
+    return _redirect_after_form(request, default_view="key_list")
 
 
 @staff_member_required
@@ -271,6 +300,11 @@ def profile_edit(request):
 @require_POST
 def take_key_request(request, key_id):
     key = get_object_or_404(Key, id=key_id)
+
+    if key.status != "free":
+        messages.error(request, "Цей ключ недоступний для запиту на видачу.")
+        return _redirect_after_form(request)
+
     existing_request = Key_requests.objects.filter(
         key=key,
         is_approved=False,
@@ -280,19 +314,19 @@ def take_key_request(request, key_id):
 
     if existing_request:
         messages.error(request, "Ключ вже має активний запит.")
-        return redirect('home')
+        return _redirect_after_form(request)
 
     active_keys = Key.objects.filter(holder=request.user, status='taken').count()
     if active_keys >= 4:
         messages.error(request, "Ви не можете мати більше 4 ключів одночасно.")
-        return redirect('home')
+        return _redirect_after_form(request)
 
     Key_requests.objects.create(user=request.user, key=key)
     key.status = 'pending'
     key.save()
 
     messages.success(request, f"Запит на ключ {key.auditory} надіслано адміністратору.")
-    return redirect('home')
+    return _redirect_after_form(request)
 
 
 @login_required
@@ -313,6 +347,7 @@ def put_key_request(request, key_id):
         key=key,
         is_expired=False,
         is_approved=False,
+        created_at__gte=timezone.now() - timedelta(minutes=15),
     ).exists()
 
     if existing_request:
@@ -323,36 +358,40 @@ def put_key_request(request, key_id):
     messages.success(request, "Запит на повернення ключа надіслано адміністратору.")
     return _redirect_after_form(request)
 
-def expire_old_requests():
-    fifteen_minutes_ago = timezone.now() - timedelta(minutes=15)
+@staff_member_required
+def admin_requests(request):
+    expire_old_requests()
+    request_type = normalize_request_type(request.GET.get("type", "all"))
+    counts = get_pending_request_counts()
+    items = build_admin_request_queue(request_type)
 
-    Key_requests.objects.filter(
-        is_approved=False,
-        is_expired=False,
-        created_at__lt=fifteen_minutes_ago
-    ).update(is_expired=True)
+    type_labels = {
+        "all": "Усі",
+        "take": "Видача",
+        "return": "Повернення",
+    }
 
-    Key_return_request.objects.filter(
-        is_approved=False,
-        is_expired=False,
-        created_at__lt=fifteen_minutes_ago
-    ).update(is_expired=True)
+    return render(
+        request,
+        "admin_requests.html",
+        {
+            "items": items,
+            "request_type": request_type,
+            "type_labels": type_labels,
+            "counts": counts,
+            "total_count": counts["take"] + counts["return"],
+        },
+    )
+
 
 @staff_member_required
 def admin_key_request(request):
-    expire_old_requests()
-    active_take_request = Key_requests.objects.filter(is_approved=False,
-                                                      is_expired=False,
-                                                      created_at__gte=timezone.now() - timedelta(minutes=15)).select_related('key', 'user')
-    return render(request, 'admin_key_requests.html', {'requests': active_take_request})
+    return redirect("admin_requests")
+
 
 @staff_member_required
 def admin_put_request(request):
-    expire_old_requests()
-    active_put_request = Key_return_request.objects.filter(is_approved=False,
-                                                           is_expired=False,
-                                                           created_at__gte=timezone.now() - timedelta(minutes=15)).select_related('key', 'user')
-    return render(request, 'admin_put_requests.html', {'requests': active_put_request})
+    return redirect("admin_requests")
 
 @staff_member_required
 @require_POST
@@ -371,7 +410,7 @@ def approve_key_request(request, request_id):
     else:
         messages.error(request, "Запит недійсний або вже оброблений.")
 
-    return redirect('key_request')
+    return redirect("admin_requests")
 
 @staff_member_required
 @require_POST
@@ -389,7 +428,7 @@ def approve_return_request(request, request_id):
         return_request.save()
         messages.error(request, "Час дії запиту минув або вже оброблений.")
 
-    return redirect('put_request')
+    return redirect("admin_requests")
 
 @staff_member_required
 @require_POST
@@ -404,7 +443,7 @@ def reject_key_request(request, request_id):
     key.save()
 
     messages.info(request, f"Запит на ключ {key.auditory} відхилено.")
-    return redirect('key_request')
+    return redirect("admin_requests")
 
 
 @staff_member_required
@@ -417,7 +456,26 @@ def reject_return_request(request, request_id):
 
     messages.success(request, f"Запит на повернення ключа {return_request.key.auditory} відхилено.")
 
-    return redirect('put_request')
+    return redirect("admin_requests")
+
+def _dashboard_card_hrefs(cards):
+    for card in cards:
+        if card.get("url_name"):
+            href = reverse(card["url_name"])
+            if card.get("query"):
+                href = f"{href}?{card['query']}"
+            card["href"] = href
+        else:
+            card["href"] = None
+
+
+@staff_member_required
+def dashboard(request):
+    stats = get_dashboard_stats()
+    _dashboard_card_hrefs(stats["key_cards"])
+    _dashboard_card_hrefs(stats["queue_cards"])
+    return render(request, "dashboard.html", stats)
+
 
 @staff_member_required
 def action_view(request):

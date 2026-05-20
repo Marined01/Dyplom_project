@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Запити на ключі{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1>Запити на ключі</h1>
+    <p>
+      Черга рішень для адміна. Запит на <strong>видачу</strong> переводить ключ у статус «Очікує»;
+      запит на <strong>повернення</strong> не змінює статус у таблиці ключів (аудиторія лишається «Зайнята»).
+    </p>
+  </div>
+
+  {% if request_type != 'all' %}
+    <p class="request-filters__notice">
+      Показано лише запити на
+      {% if request_type == 'take' %}<strong>видачу</strong>{% else %}<strong>повернення</strong>{% endif %}.
+      Усього в черзі: <a href="{% url 'admin_requests' %}">{{ total_count }}</a>
+      (видача {{ counts.take }}, повернення {{ counts.return }}).
+    </p>
+  {% endif %}
+
+  <nav class="request-filters" aria-label="Фільтр типу запиту">
+    <a
+      href="{% url 'admin_requests' %}"
+      class="request-filters__tab{% if request_type == 'all' %} request-filters__tab--active{% endif %}"
+    >Усі ({{ total_count }})</a>
+    <a
+      href="{% url 'admin_requests' %}?type=take"
+      class="request-filters__tab{% if request_type == 'take' %} request-filters__tab--active{% endif %}"
+    >Видача ({{ counts.take }})</a>
+    <a
+      href="{% url 'admin_requests' %}?type=return"
+      class="request-filters__tab{% if request_type == 'return' %} request-filters__tab--active{% endif %}"
+    >Повернення ({{ counts.return }})</a>
+  </nav>
+
+  {% if items %}
+    <div class="card-list">
+      {% for item in items %}
+        <div class="card">
+          <div class="card__body">
+            <p>
+              <span class="action-badge action-badge--{{ item.kind }}">{{ item.kind_label }}</span>
+            </p>
+            <p><strong>Користувач:</strong> {{ item.user.surname }} {{ item.user.name }}</p>
+            <p><strong>Аудиторія:</strong> {{ item.key.auditory }}</p>
+            <p class="card__meta"><strong>Час:</strong> {{ item.created_at|date:"d.m.Y H:i" }}</p>
+          </div>
+          <div class="card__actions">
+            <form method="post" action="{{ item.approve_url }}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn">{{ item.approve_label }}</button>
+            </form>
+            <form method="post" action="{{ item.reject_url }}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn--danger">Відхилити</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-state">
+      {% if request_type == 'take' %}
+        Немає активних запитів на видачу.
+      {% elif request_type == 'return' %}
+        Немає активних запитів на повернення.
+      {% else %}
+        Немає активних запитів. Черга порожня.
+      {% endif %}
+    </p>
+  {% endif %}
+{% endblock %}
