@@ -24,6 +24,12 @@ from coursework.key_metrics import (
     apply_long_held_filter,
 )
 from coursework.dashboard import get_dashboard_stats
+from coursework.users_admin import (
+    USERS_PER_PAGE,
+    build_users_queryset,
+    keys_held_by_user,
+    users_filter_query_string,
+)
 from coursework.journal import (
     ACTION_TYPES,
     JOURNAL_PER_PAGE,
@@ -522,3 +528,82 @@ def action_view_export(request):
         date_to=date_to,
     )
     return export_action_logs_csv(logs)
+
+
+@staff_member_required
+def admin_user_list(request):
+    query = request.GET.get("q", "").strip()
+    active_filter = request.GET.get("active", "").strip()
+    staff_filter = request.GET.get("staff", "").strip()
+    if active_filter not in ("", "active", "inactive"):
+        active_filter = ""
+    if staff_filter not in ("", "staff", "regular"):
+        staff_filter = ""
+
+    users = build_users_queryset(query, active_filter, staff_filter)
+    paginator = Paginator(users, USERS_PER_PAGE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    filter_qs = users_filter_query_string(query, active_filter, staff_filter)
+    has_filters = bool(query or active_filter or staff_filter)
+
+    return render(
+        request,
+        "admin_user_list.html",
+        {
+            "page_obj": page_obj,
+            "users": page_obj.object_list,
+            "query": query,
+            "active_filter": active_filter,
+            "staff_filter": staff_filter,
+            "filter_qs": filter_qs,
+            "has_filters": has_filters,
+            "users_total": users.count(),
+        },
+    )
+
+
+@staff_member_required
+def admin_user_edit(request, user_id):
+    target = get_object_or_404(User, id=user_id)
+    is_self = target.id == request.user.id
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        surname = request.POST.get("surname", "").strip()
+        email = request.POST.get("email", "").strip().lower()
+        password = request.POST.get("password", "").strip()
+
+        if not name or not surname or not email:
+            messages.error(request, "Ім’я, прізвище та email обов’язкові.")
+            return redirect("admin_user_edit", user_id=target.id)
+
+        if User.objects.filter(email=email).exclude(pk=target.pk).exists():
+            messages.error(request, "Користувач з таким email уже існує.")
+            return redirect("admin_user_edit", user_id=target.id)
+
+        target.name = name
+        target.surname = surname
+        target.email = email
+
+        if password:
+            target.set_password(password)
+
+        if not is_self:
+            target.is_active = request.POST.get("is_active") == "on"
+            if request.user.is_superuser:
+                target.is_staff = request.POST.get("is_staff") == "on"
+
+        target.save()
+        messages.success(request, f"Дані користувача {target} оновлено.")
+        return redirect("admin_user_list")
+
+    return render(
+        request,
+        "admin_user_edit.html",
+        {
+            "target": target,
+            "is_self": is_self,
+            "keys_held": keys_held_by_user(target),
+            "can_edit_staff": request.user.is_superuser,
+        },
+    )

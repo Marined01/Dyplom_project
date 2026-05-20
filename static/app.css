@@ -696,6 +696,116 @@ html[data-theme="dark"] .theme-toggle__icon--sun {
   accent-color: var(--color-accent);
 }
 
+.status-pill {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.status-pill--success {
+  background: var(--color-success-bg);
+  color: var(--color-msg-success-text);
+}
+
+.status-pill--info {
+  background: var(--color-info-bg);
+  color: var(--color-accent);
+}
+
+.status-pill--muted {
+  background: var(--color-border-subtle);
+  color: var(--color-muted);
+}
+
+.data-table__row--muted td {
+  opacity: 0.65;
+}
+
+/* Панелі (форма профілю, редагування користувача) — без flex-картки .card */
+.panel {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.panel__title {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.admin-user-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 520px;
+}
+
+@media (min-width: 960px) {
+  .admin-user-edit {
+    max-width: 100%;
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
+    align-items: start;
+  }
+}
+
+.form-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+}
+
+.form-check {
+  display: grid;
+  grid-template-columns: 1.25rem 1fr;
+  column-gap: 0.55rem;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.form-check__input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  accent-color: var(--color-accent);
+}
+
+.form-check__label {
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.admin-user-keys {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-user-keys li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-user-keys li:last-child {
+  border-bottom: none;
+}
+
+.field--checkbox {
+  margin-top: 0.25rem;
+}
+
 .stat-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
@@ -1028,13 +1138,13 @@ body.auth-page .app-main {
   gap: 0.35rem;
 }
 
-.field label {
+.field > label {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-muted);
 }
 
-.field input {
+.field input:not([type="checkbox"]):not([type="radio"]) {
   width: 100%;
   padding: 0.65rem 0.85rem;
   border: 1px solid var(--color-border-input);
@@ -1045,7 +1155,7 @@ body.auth-page .app-main {
   color: var(--color-text);
 }
 
-.field input:focus {
+.field input:not([type="checkbox"]):not([type="radio"]):focus {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 1px;
   border-color: var(--color-accent);

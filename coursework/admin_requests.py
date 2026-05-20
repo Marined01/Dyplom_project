@@ -43,7 +43,6 @@ def get_pending_request_counts():
 
 
 def expire_old_requests():
-    """Позначити прострочені запити та звільнити ключі без активного запиту на видачу."""
     since = timezone.now() - REQUEST_WINDOW
 
     Key_requests.objects.filter(
@@ -65,14 +64,9 @@ def expire_old_requests():
 
 
 def build_admin_request_queue(request_type="all"):
-    """
-    Єдиний список активних запитів для адміна.
-    request_type: all | take | return
-    """
     request_type = normalize_request_type(request_type)
 
     items = []
-
     if request_type in ("all", "take"):
         for req in _active_take_queryset():
             items.append(
@@ -108,7 +102,7 @@ def build_admin_request_queue(request_type="all"):
                     "reject_url": reverse(
                         "reject_put_request", args=[req.id]
                     ),
-                    "approve_label": "Підтвердити повернення",
+                    # "approve_label": "Підтвердити повернення",
                 }
             )
 
