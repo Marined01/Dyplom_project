@@ -18,6 +18,11 @@ from coursework.admin_requests import (
     get_pending_request_counts,
     normalize_request_type,
 )
+from coursework.key_metrics import (
+    LONG_HELD_DAYS,
+    apply_key_sort,
+    apply_long_held_filter,
+)
 from coursework.dashboard import get_dashboard_stats
 from coursework.journal import (
     ACTION_TYPES,
@@ -110,7 +115,18 @@ def key_list(request):
             | Q(holder__surname__icontains=query)
             | Q(holder__email__icontains=query)
         ).distinct()
-    has_filters = bool(query or status)
+
+    long_held = request.GET.get("long_held", "").strip() == "1"
+    if request.user.is_staff and long_held:
+        keys = apply_long_held_filter(keys, True)
+
+    sort = request.GET.get("sort", "").strip()
+    if request.user.is_staff:
+        keys = apply_key_sort(keys, sort)
+    else:
+        keys = keys.order_by("auditory")
+
+    has_filters = bool(query or status or long_held or sort)
     return render(
         request,
         "key_list.html",
@@ -119,12 +135,15 @@ def key_list(request):
             "user": request.user,
             "query": query,
             "status_filter": status,
+            "sort": sort if request.user.is_staff else "",
+            "long_held": long_held and request.user.is_staff,
+            "long_held_days": LONG_HELD_DAYS,
             "keys_count": keys.count(),
             "has_filters": has_filters,
         },
     )
 
-@login_required
+@staff_member_required
 @require_POST
 def take_key(request, key_id):
     try:
@@ -133,10 +152,10 @@ def take_key(request, key_id):
         raise Http404("Key does not exist")
     try:
         key.take_key(request.user)
-        messages.success(request, f"Ключ до аудиторії {key.auditory} взяли")
+        messages.success(request, f"Ключ до аудиторії {key.auditory} видано.")
     except ValueError as e:
         messages.error(request, e)
-    return redirect('key_list')
+    return _redirect_after_form(request, default_view="key_list")
 
 
 @staff_member_required
@@ -281,6 +300,11 @@ def profile_edit(request):
 @require_POST
 def take_key_request(request, key_id):
     key = get_object_or_404(Key, id=key_id)
+
+    if key.status != "free":
+        messages.error(request, "Цей ключ недоступний для запиту на видачу.")
+        return _redirect_after_form(request)
+
     existing_request = Key_requests.objects.filter(
         key=key,
         is_approved=False,
@@ -290,19 +314,19 @@ def take_key_request(request, key_id):
 
     if existing_request:
         messages.error(request, "Ключ вже має активний запит.")
-        return redirect('home')
+        return _redirect_after_form(request)
 
     active_keys = Key.objects.filter(holder=request.user, status='taken').count()
     if active_keys >= 4:
         messages.error(request, "Ви не можете мати більше 4 ключів одночасно.")
-        return redirect('home')
+        return _redirect_after_form(request)
 
     Key_requests.objects.create(user=request.user, key=key)
     key.status = 'pending'
     key.save()
 
     messages.success(request, f"Запит на ключ {key.auditory} надіслано адміністратору.")
-    return redirect('home')
+    return _redirect_after_form(request)
 
 
 @login_required
