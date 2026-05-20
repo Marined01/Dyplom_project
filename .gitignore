@@ -1,6 +1,7 @@
 # Папки та файли IDE
 .idea/
 .vscode/
+.DS_Store
 *.swp
 *.swo
 

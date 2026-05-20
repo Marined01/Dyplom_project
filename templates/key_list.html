@@ -4,10 +4,10 @@
   <div class="page-head">
     <h1>Ключі</h1>
     <p>
-      Пошук за аудиторією або іменем, фільтр за статусом.
-      <strong>Взяти</strong> вільний ключ може будь-який авторизований користувач.
-      <strong>Повернути</strong> зайнятий — тримач подає запит адміну; персонал може повернути одразу.
-      <strong>Передати</strong> іншому - лише тримач.
+      Пошук за аудиторією або іменем, фільтр за статусом ключа.
+      <strong>Вільна</strong> — персонал видає одразу, інші подають запит адміну;
+      <strong>Зайнята</strong> — у користувача на руках (повернення — через запит адміну);
+      <strong>Очікує</strong> — подано запит на видачу, адмін ще не підтвердив (не плутати з запитом на повернення).
     </p>
   </div>
 
@@ -28,7 +28,21 @@
       <option value="" {% if not status_filter %}selected{% endif %}>Усі статуси</option>
       <option value="free" {% if status_filter == 'free' %}selected{% endif %}>Вільна</option>
       <option value="taken" {% if status_filter == 'taken' %}selected{% endif %}>Зайнята</option>
+      <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Очікує (запит на видачу)</option>
     </select>
+    {% if user.is_staff %}
+      <label class="search-bar__label" for="id_sort">Сортування</label>
+      <select id="id_sort" class="search-bar__select" name="sort" aria-label="Сортування">
+        <option value="" {% if not sort %}selected{% endif %}>За аудиторією</option>
+        <option value="held" {% if sort == 'held' %}selected{% endif %}>Найдовше на руках</option>
+        <option value="-held" {% if sort == '-held' %}selected{% endif %}>Найменше на руках</option>
+        <option value="status" {% if sort == 'status' %}selected{% endif %}>За статусом</option>
+      </select>
+      <label class="search-bar__check">
+        <input type="checkbox" name="long_held" value="1" {% if long_held %}checked{% endif %}>
+        Довго на руках (≥{{ long_held_days }} дн.)
+      </label>
+    {% endif %}
     <button type="submit" class="btn search-bar__submit">Застосувати</button>
     {% if has_filters %}
       <a href="{% url 'key_list' %}" class="btn btn--secondary search-bar__reset">Скинути фільтри</a>
@@ -42,9 +56,11 @@
       {% if status_filter %}
         <span class="search-bar__hint-part">
           · статус:
-          {% if status_filter == 'free' %}Вільна{% elif status_filter == 'taken' %}Зайнята{% endif %}
+          {% if status_filter == 'free' %}Вільна{% elif status_filter == 'taken' %}Зайнята{% elif status_filter == 'pending' %}Очікує{% endif %}
         </span>
       {% endif %}
+      {% if long_held %}<span class="search-bar__hint-part">· лише довго на руках</span>{% endif %}
+      {% if sort == 'held' %}<span class="search-bar__hint-part">· сортування: найдовше на руках</span>{% elif sort == '-held' %}<span class="search-bar__hint-part">· сортування: найменше на руках</span>{% elif sort == 'status' %}<span class="search-bar__hint-part">· сортування: за статусом</span>{% endif %}
     </p>
   {% endif %}
 
@@ -54,24 +70,41 @@
         <tr>
           <th>Аудиторія</th>
           <th>Статус</th>
-          <th>Хто тримає</th>
+          <th>В руках у</th>
           <th>Остання дія</th>
+          <th>На руках</th>
           <th>Дії</th>
         </tr>
       </thead>
       <tbody>
         {% for key in keys %}
-          <tr>
+          <tr{% if key.is_long_held %} class="data-table__row--warn"{% endif %}>
             <td>{{ key.auditory }}</td>
             <td>{{ key.get_status_display }}</td>
             <td>{% if key.holder %}{{ key.holder }}{% else %}—{% endif %}</td>
             <td>{% if key.last_activity_at %}{{ key.last_activity_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td>
             <td>
+              {% if key.held_duration_display %}
+                <span class="held-duration{% if key.is_long_held %} held-duration--long{% endif %}" title="з {{ key.held_since|date:'d.m.Y H:i' }}">{{ key.held_duration_display }}</span>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
               {% if key.status == 'free' %}
-                <form method="post" action="{% url 'take_key' key.id %}" class="inline-form">
-                  {% csrf_token %}
-                  <button type="submit" class="btn">Взяти</button>
-                </form>
+                {% if user.is_staff %}
+                  <form method="post" action="{% url 'take_key' key.id %}" class="inline-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn">Видати</button>
+                  </form>
+                {% else %}
+                  <form method="post" action="{% url 'take_key_request' key.id %}" class="inline-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn">Запит на видачу</button>
+                  </form>
+                {% endif %}
               {% elif key.status == 'taken' %}
                 {% if user.is_staff %}
                   <form method="post" action="{% url 'put_key' key.id %}" class="inline-form">
@@ -92,14 +125,18 @@
                 {% if key.holder_id != user.id and not user.is_staff %}
                   <span class="card__meta">Немає доступних дій</span>
                 {% endif %}
-              {% else %}
-                <span class="card__meta">Очікує підтвердження</span>
+              {% elif key.status == 'pending' %}
+                {% if user.is_staff %}
+                  <a href="{% url 'admin_requests' %}?type=take" class="btn btn--ghost">Черга запитів</a>
+                {% else %}
+                  <span class="card__meta">Очікує підтвердження видачі</span>
+                {% endif %}
               {% endif %}
             </td>
           </tr>
         {% empty %}
           <tr>
-            <td colspan="5" class="empty-state">Нічого не знайдено. Спробуйте інший запит або <a href="{% url 'key_list' %}">скинути фільтр</a>.</td>
+            <td colspan="6" class="empty-state">Нічого не знайдено. Спробуйте інший запит або <a href="{% url 'key_list' %}">скинути фільтр</a>.</td>
           </tr>
         {% endfor %}
       </tbody>

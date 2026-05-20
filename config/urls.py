@@ -19,6 +19,7 @@ urlpatterns = [
 
     path('free-keys/', views.free_keys, name='free_keys'),
 
+    path('requests/', views.admin_requests, name='admin_requests'),
     path('requests-take/', views.admin_key_request, name='admin_key_request'),
     path('requests-put/', views.admin_put_request, name='admin_put_request'),
     path('request-put-key/<int:key_id>', views.put_key_request, name='put_key_request'),
@@ -36,6 +37,7 @@ urlpatterns = [
     path('approve_transfer/<int:request_id>/', views.approve_transfer_request, name='approve_transfer'),
     path('reject_transfer/<int:request_id>/', views.reject_transfer_request, name='reject_transfer'),
 
+    path('dashboard/', views.dashboard, name='dashboard'),
     path('action_view/', views.action_view, name='action_view'),
     path('action_view/export/', views.action_view_export, name='action_view_export'),
 
