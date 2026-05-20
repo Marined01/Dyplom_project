@@ -24,7 +24,6 @@ def long_held_keys_queryset():
         .order_by("take_key_time")
     )
 
-
 def apply_long_held_filter(queryset, enabled):
     if not enabled:
         return queryset
@@ -34,7 +33,6 @@ def apply_long_held_filter(queryset, enabled):
         take_key_time__isnull=False,
         take_key_time__lte=cutoff,
     )
-
 
 def apply_key_sort(queryset, sort):
     sort = (sort or "").strip()
