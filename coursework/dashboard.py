@@ -3,14 +3,14 @@
 from django.db.models import Count
 
 from coursework.admin_requests import expire_old_requests, get_pending_request_counts
+from coursework.key_metrics import LONG_HELD_DAYS, long_held_keys_queryset
 from coursework.models import Key, User
 
 
 def get_dashboard_stats():
-    """
-    Збирає цифри для карток дашборду.
-    Повертає dict із групами key_cards та queue_cards (списки словників для шаблону).
-    """
+    # Збирає цифри для карток дашборду.
+    # Повертає dict із групами key_cards та queue_cards (списки словників для шаблону).
+
     expire_old_requests()
 
     key_counts = {
@@ -28,6 +28,8 @@ def get_dashboard_stats():
     pending_total = pending_take + pending_return
 
     users_active = User.objects.filter(is_active=True).count()
+    long_held_qs = long_held_keys_queryset()
+    long_held_count = long_held_qs.count()
 
     key_cards = [
         {
@@ -57,6 +59,14 @@ def get_dashboard_stats():
             "query": "status=pending",
             "variant": "warning",
             "hint": "Статус ключа в таблиці (після запиту на видачу)",
+        },
+        {
+            "label": f"Довго на руках (≥{LONG_HELD_DAYS} дн.)",
+            "value": long_held_count,
+            "url_name": "key_list",
+            "query": "status=taken&long_held=1&sort=held",
+            "variant": "warning",
+            "hint": "Зайняті без повернення довше порогу",
         },
     ]
 
@@ -95,4 +105,7 @@ def get_dashboard_stats():
         "queue_cards": queue_cards,
         "pending_take": pending_take,
         "pending_return": pending_return,
+        "long_held_keys": list(long_held_qs[:10]),
+        "long_held_count": long_held_count,
+        "long_held_days": LONG_HELD_DAYS,
     }

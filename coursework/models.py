@@ -62,6 +62,42 @@ class Key(models.Model):
         times = [t for t in (self.take_key_time, self.put_key_time) if t is not None]
         return max(times) if times else None
 
+    @property
+    def held_since(self):
+        # Коли поточний тримач отримав ключ (лише для статусу «зайнята»)
+        if self.status == "taken" and self.take_key_time:
+            return self.take_key_time
+        return None
+
+    @property
+    def held_duration_days(self):
+        if not self.held_since:
+            return None
+        return (timezone.now() - self.held_since).days
+
+    @property
+    def held_duration_display(self):
+        if not self.held_since:
+            return None
+        delta = timezone.now() - self.held_since
+        days = delta.days
+        if days >= 1:
+            return f"{days} дн."
+        hours = delta.seconds // 3600
+        if hours >= 1:
+            return f"{hours} год."
+        return "менше години"
+
+    def is_long_held(self, threshold_days=None):
+        days = self.held_duration_days
+        if days is None:
+            return False
+        if threshold_days is None:
+            from coursework.key_metrics import LONG_HELD_DAYS
+
+            threshold_days = LONG_HELD_DAYS
+        return days >= threshold_days
+
     def take_key(self, user):
         if self.status == 'taken':
             raise ValueError("Ключ вже зайнятий")
