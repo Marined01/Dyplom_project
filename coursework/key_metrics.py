@@ -1,5 +1,3 @@
-"""Тривалість утримання ключів і фільтр «довго на руках»."""
-
 from datetime import timedelta
 
 from django.db.models import DurationField, F
