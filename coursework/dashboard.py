@@ -1,10 +1,58 @@
-"""Показники для інформаційної панелі (дашборд) адміністратора."""
+from datetime import timedelta
 
 from django.db.models import Count
-
-from coursework.admin_requests import expire_old_requests, get_pending_request_counts
+from django.utils import timezone
+from coursework.admin_requests import (
+    build_admin_request_queue,
+    expire_old_requests,
+    get_pending_request_counts,
+)
+from coursework.journal import build_action_logs
 from coursework.key_metrics import LONG_HELD_DAYS, long_held_keys_queryset
 from coursework.models import Key, User
+
+def status_donut(free, taken, pending):
+    total = free + taken + pending
+    if total == 0:
+        return None
+    p_free = round(100 * free / total, 2)
+    p_taken = round(100 * taken / total, 2)
+    p_pending = round(100 * pending / total, 2)
+    stop_free = p_free
+    stop_taken = p_free + p_taken
+    return {
+        "total": total,
+        "gradient": (
+            f"conic-gradient("
+            f"var(--chart-free) 0% {stop_free}%, "
+            f"var(--chart-taken) {stop_free}% {stop_taken}%, "
+            f"var(--chart-pending) {stop_taken}% 100%"
+            f")"
+        ),
+        "legend": [
+            {"label": "Вільні", "value": free, "pct": p_free, "variant": "free"},
+            {"label": "Зайняті", "value": taken, "pct": p_taken, "variant": "taken"},
+            {"label": "Очікує", "value": pending, "pct": p_pending, "variant": "pending"},
+        ],
+    }
+
+def activity_bars(days=7):
+    logs = build_action_logs()
+    today = timezone.localdate()
+    labels = []
+    counts = []
+    for offset in range(days - 1, -1, -1):
+        day = today - timedelta(days=offset)
+        labels.append(day.strftime("%d.%m"))
+        counts.append(
+            sum(1 for row in logs if timezone.localtime(row["timestamp"]).date() == day)
+        )
+    peak = max(counts) if counts else 0
+    bars = []
+    for label, count in zip(labels, counts):
+        height = round(100 * count / peak) if peak else 0
+        bars.append({"label": label, "count": count, "height_pct": max(height, 4) if count else 0})
+    return bars
 
 
 def get_dashboard_stats():
@@ -106,7 +154,12 @@ def get_dashboard_stats():
         "queue_cards": queue_cards,
         "pending_take": pending_take,
         "pending_return": pending_return,
+        "pending_total": pending_total,
         "long_held_keys": list(long_held_qs[:10]),
         "long_held_count": long_held_count,
         "long_held_days": LONG_HELD_DAYS,
+        "status_donut": status_donut(keys_free, keys_taken, keys_pending),
+        "activity_bars": activity_bars(),
+        "recent_pending": build_admin_request_queue("all")[:5],
+        "recent_activity": build_action_logs()[:6],
     }
