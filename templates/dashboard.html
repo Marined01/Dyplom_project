@@ -1,14 +1,34 @@
 {% extends "base.html" %}
 {% block title %}Дашборд{% endblock %}
 {% block content %}
-  <div class="page-head">
-    <h1>Дашборд</h1>
-    <p>
-      <strong>Ключі</strong> — поточний стан аудиторій у таблиці (вільна / зайнята / очікує видачі).
-      <strong>Запити адміна</strong> — окрема черга на підтвердження видачі або повернення.
-<!--      (ключ при поверненні лишається «зайнятим», доки адмін не підтвердить)-->
-    </p>
+  <div class="page-head page-head--dashboard">
+    <div>
+      <h1>Дашборд</h1>
+      <p class="page-head__lead">Зведення по ключах, черзі запитів і активності системи.</p>
+    </div>
+    <div class="dashboard-quick-links">
+      <a href="{% url 'admin_requests' %}" class="btn btn--ghost btn--sm">Черга запитів</a>
+      <a href="{% url 'key_list' %}" class="btn btn--ghost btn--sm">Ключі</a>
+      <a href="{% url 'action_view' %}" class="btn btn--ghost btn--sm">Журнал</a>
+      <a href="{% url 'admin_user_list' %}" class="btn btn--ghost btn--sm">Користувачі</a>
+    </div>
   </div>
+
+  {% if pending_total %}
+    <div class="dashboard-banner dashboard-banner--accent" role="status">
+      <span class="dashboard-banner__icon" aria-hidden="true">!</span>
+      <div class="dashboard-banner__text">
+        {% if pending_take and pending_return %}
+          У черзі <strong>{{ pending_total }}</strong> запитів: {{ pending_take }} на видачу, {{ pending_return }} на повернення.
+        {% elif pending_take %}
+          У черзі <strong>{{ pending_take }}</strong> запит(ів) на видачу.
+        {% else %}
+          У черзі <strong>{{ pending_return }}</strong> запит(ів) на повернення.
+        {% endif %}
+      </div>
+      <a href="{% url 'admin_requests' %}" class="btn btn--sm">Відкрити чергу</a>
+    </div>
+  {% endif %}
 
   <section class="dashboard-section" aria-labelledby="dashboard-keys-heading">
     <h2 id="dashboard-keys-heading" class="dashboard-section__title">Ключі</h2>
@@ -18,13 +38,11 @@
           <a href="{{ card.href }}" class="stat-card stat-card--{{ card.variant }}">
             <span class="stat-card__value">{{ card.value }}</span>
             <span class="stat-card__label">{{ card.label }}</span>
-<!--            {% if card.hint %}<span class="stat-card__hint">{{ card.hint }}</span>{% endif %}-->
           </a>
         {% else %}
           <div class="stat-card stat-card--{{ card.variant }} stat-card--static">
             <span class="stat-card__value">{{ card.value }}</span>
             <span class="stat-card__label">{{ card.label }}</span>
-<!--            {% if card.hint %}<span class="stat-card__hint">{{ card.hint }}</span>{% endif %}-->
           </div>
         {% endif %}
       {% endfor %}
@@ -32,25 +50,111 @@
   </section>
 
   <section class="dashboard-section" aria-labelledby="dashboard-queue-heading">
-    <h2 id="dashboard-queue-heading" class="dashboard-section__title">Запити адміна</h2>
+    <h2 id="dashboard-queue-heading" class="dashboard-section__title">Адміністрування</h2>
     <div class="stat-cards">
       {% for card in queue_cards %}
         {% if card.href %}
           <a href="{{ card.href }}" class="stat-card stat-card--{{ card.variant }}">
             <span class="stat-card__value">{{ card.value }}</span>
             <span class="stat-card__label">{{ card.label }}</span>
-<!--            {% if card.hint %}<span class="stat-card__hint">{{ card.hint }}</span>{% endif %}-->
           </a>
         {% else %}
           <div class="stat-card stat-card--{{ card.variant }} stat-card--static">
             <span class="stat-card__value">{{ card.value }}</span>
             <span class="stat-card__label">{{ card.label }}</span>
-<!--            {% if card.hint %}<span class="stat-card__hint">{{ card.hint }}</span>{% endif %}-->
           </div>
         {% endif %}
       {% endfor %}
     </div>
   </section>
+
+  <div class="dashboard-grid dashboard-grid--charts">
+    {% if status_donut %}
+      <section class="dashboard-panel" aria-labelledby="chart-status-heading">
+        <h2 id="chart-status-heading" class="dashboard-panel__title">Стан ключів</h2>
+        <div class="donut-chart">
+          <div class="donut-chart__ring" style="background: {{ status_donut.gradient }};">
+            <div class="donut-chart__hole">
+              <span class="donut-chart__total">{{ status_donut.total }}</span>
+              <span class="donut-chart__caption">усього</span>
+            </div>
+          </div>
+          <ul class="donut-chart__legend">
+            {% for item in status_donut.legend %}
+              <li>
+                <span class="donut-chart__dot donut-chart__dot--{{ item.variant }}"></span>
+                <span class="donut-chart__legend-label">{{ item.label }}</span>
+                <span class="donut-chart__legend-value">{{ item.value }} ({{ item.pct }}%)</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </section>
+    {% endif %}
+
+    <section class="dashboard-panel" aria-labelledby="chart-activity-heading">
+      <h2 id="chart-activity-heading" class="dashboard-panel__title">Активність за 7 днів</h2>
+      <p class="dashboard-panel__subtitle">Підтверджені видачі, повернення та передачі</p>
+      <div class="bar-chart" role="img" aria-label="Графік активності за останні 7 днів">
+        {% for bar in activity_bars %}
+          <div class="bar-chart__col">
+            <span class="bar-chart__value">{% if bar.count %}{{ bar.count }}{% endif %}</span>
+            <div class="bar-chart__track">
+              <div class="bar-chart__fill" style="height: {{ bar.height_pct }}%;"></div>
+            </div>
+            <span class="bar-chart__label">{{ bar.label }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="dashboard-grid dashboard-grid--lists">
+    <section class="dashboard-panel" aria-labelledby="pending-preview-heading">
+      <div class="dashboard-section__head">
+        <h2 id="pending-preview-heading" class="dashboard-panel__title">Черга запитів</h2>
+        <a href="{% url 'admin_requests' %}" class="btn btn--ghost btn--sm">Усі</a>
+      </div>
+      {% if recent_pending %}
+        <ul class="dashboard-feed">
+          {% for item in recent_pending %}
+            <li class="dashboard-feed__item">
+              <span class="action-badge action-badge--{{ item.kind }}">{{ item.kind_label }}</span>
+              <div class="dashboard-feed__body">
+                <p class="dashboard-feed__title">Ауд. {{ item.key.auditory }} · {{ item.user.surname }} {{ item.user.name }}</p>
+                <p class="dashboard-feed__meta">{{ item.created_at|date:"d.m.Y H:i" }}</p>
+              </div>
+              <a href="{% url 'admin_requests' %}?type={{ item.kind }}" class="btn btn--sm">До черги</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty-state dashboard-panel__empty">Немає активних запитів — черга порожня.</p>
+      {% endif %}
+    </section>
+
+    <section class="dashboard-panel" aria-labelledby="activity-preview-heading">
+      <div class="dashboard-section__head">
+        <h2 id="activity-preview-heading" class="dashboard-panel__title">Останні події</h2>
+        <a href="{% url 'action_view' %}" class="btn btn--ghost btn--sm">Журнал</a>
+      </div>
+      {% if recent_activity %}
+        <ul class="dashboard-feed">
+          {% for row in recent_activity %}
+            <li class="dashboard-feed__item dashboard-feed__item--static">
+              <span class="action-badge action-badge--{{ row.action_type }}">{{ row.action_label }}</span>
+              <div class="dashboard-feed__body">
+                <p class="dashboard-feed__title">Ауд. {{ row.auditory }} · {{ row.participants }}</p>
+                <p class="dashboard-feed__meta">{{ row.timestamp|date:"d.m.Y H:i" }}</p>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty-state dashboard-panel__empty">Поки немає підтверджених операцій у журналі.</p>
+      {% endif %}
+    </section>
+  </div>
 
   {% if long_held_count %}
     <section class="dashboard-section" aria-labelledby="dashboard-long-held-heading">
@@ -81,17 +185,5 @@
         </table>
       </div>
     </section>
-  {% endif %}
-
-  {% if pending_take or pending_return %}
-    <p class="dashboard-alert">
-      {% if pending_take and pending_return %}
-        Є нові запити на видачу та повернення — відкрийте <a href="{% url 'admin_requests' %}">чергу запитів</a>.
-      {% elif pending_take %}
-        Є нові запити на видачу ({{ pending_take }}) — <a href="{% url 'admin_requests' %}">переглянути чергу</a>.
-      {% else %}
-        Є нові запити на повернення ({{ pending_return }}) — <a href="{% url 'admin_requests' %}">переглянути чергу</a>.
-      {% endif %}
-    </p>
   {% endif %}
 {% endblock %}

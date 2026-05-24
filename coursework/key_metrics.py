@@ -7,8 +7,7 @@ from django.utils import timezone
 
 from coursework.models import Key
 
-LONG_HELD_DAYS = 2
-
+LONG_HELD_DAYS = 1
 ALLOWED_SORT = {"", "auditory", "status", "held", "-held"}
 
 
