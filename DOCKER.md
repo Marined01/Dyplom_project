@@ -61,7 +61,6 @@ docker compose exec web python manage.py shell
 ```
 
 ---
-
 ## Локальна розробка без Docker
 
 Як раніше: venv + Postgres на `localhost`. У `config/settings.py` залишені значення за замовчуванням для вашої локальної БД, якщо змінні середовища не задані.
