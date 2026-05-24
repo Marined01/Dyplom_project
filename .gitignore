@@ -1,13 +1,13 @@
-# Папки та файли IDE
 .idea/
 .vscode/
+.cursor/
 .DS_Store
 *.swp
 *.swo
 
-# Python
 __pycache__/
 *.py[cod]
+*$py.class
 *.so
 .Python
 env/
@@ -15,18 +15,24 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+*.egg-info/
+.eggs/
+dist/
+build/
 
-# Django
 *.log
 *.pot
-*.pyc
 db.sqlite3
 media/
+staticfiles/
 
-# Налаштування та секрети
 .env
 .env.local
 .env.*.local
+!.env.example
 secrets.py
 local_settings.py
-/settings/local.py
+
+.pytest_cache/
+.coverage
+htmlcov/
