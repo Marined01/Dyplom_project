@@ -16,21 +16,37 @@
     })();
   </script>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#2d4a8c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Ключі">
   <title>{% block title %}Головна{% endblock %} — облік ключів</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'app.css' %}?v=20260521">
+  <link rel="stylesheet" href="{% static 'app.css' %}?v=20260522">
   {% block extra_css %}{% endblock %}
   <script src="{% static 'theme.js' %}" defer></script>
+  <script src="{% static 'nav.js' %}" defer></script>
 </head>
 <body class="{% block body_class %}app-shell{% endblock %}">
   {% if user.is_authenticated %}
     <header class="site-header">
       <div class="site-header__inner">
         <a href="{% url 'home' %}" class="brand">Облік ключів</a>
-        <nav class="site-nav{% if user.is_staff %} site-nav--staff{% endif %}" aria-label="Головне меню">
+        <button
+          type="button"
+          class="nav-toggle"
+          aria-controls="site-nav"
+          aria-expanded="false"
+          aria-label="Відкрити меню"
+        >
+          <span class="nav-toggle__bars" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+        </button>
+        <nav id="site-nav" class="site-nav{% if user.is_staff %} site-nav--staff{% endif %}" aria-label="Головне меню">
           <ul class="site-nav__list site-nav__list--main">
             <li><a href="{% url 'home' %}">Головна</a></li>
             <li><a href="{% url 'free_keys' %}">Вільні аудиторії</a></li>
