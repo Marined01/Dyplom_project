@@ -25,7 +25,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'app.css' %}?v=20260522">
+  <link rel="stylesheet" href="{% static 'app.css' %}?v=20260525">
   {% block extra_css %}{% endblock %}
   <script src="{% static 'theme.js' %}" defer></script>
   <script src="{% static 'nav.js' %}" defer></script>
@@ -34,18 +34,30 @@
   {% if user.is_authenticated %}
     <header class="site-header">
       <div class="site-header__inner">
+        <div class="site-header__top">
         <a href="{% url 'home' %}" class="brand">Облік ключів</a>
-        <button
-          type="button"
-          class="nav-toggle"
-          aria-controls="site-nav"
-          aria-expanded="false"
-          aria-label="Відкрити меню"
-        >
-          <span class="nav-toggle__bars" aria-hidden="true">
-            <span></span><span></span><span></span>
-          </span>
-        </button>
+        <div class="site-header__tools">
+          <button type="button" class="theme-toggle theme-toggle--mobile" aria-label="Перемкнути тему" title="Світла / темна тема">
+            <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            </span>
+            <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="nav-toggle"
+            aria-controls="site-nav"
+            aria-expanded="false"
+            aria-label="Відкрити меню"
+          >
+            <span class="nav-toggle__bars" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </span>
+          </button>
+        </div>
+        </div>
         <nav id="site-nav" class="site-nav{% if user.is_staff %} site-nav--staff{% endif %}" aria-label="Головне меню">
           <ul class="site-nav__list site-nav__list--main">
             <li><a href="{% url 'home' %}">Головна</a></li>
@@ -67,8 +79,8 @@
             {% endif %}
           </ul>
           <ul class="site-nav__list site-nav__list--end">
-            <li>
-              <button type="button" class="theme-toggle" aria-label="Перемкнути тему" title="Світла / темна тема">
+            <li class="site-nav__theme-desktop">
+              <button type="button" class="theme-toggle theme-toggle--desktop" aria-label="Перемкнути тему" title="Світла / темна тема">
                 <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
                 </span>

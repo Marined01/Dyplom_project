@@ -3,12 +3,15 @@
 {% block content %}
   <div class="page-head">
     <h1>Ключі</h1>
-    <p>
-      Пошук за аудиторією або іменем, фільтр за статусом ключа.
-      <strong>Вільна</strong> — персонал видає одразу, інші подають запит адміну;
-      <strong>Зайнята</strong> — у користувача на руках;
-      <strong>Очікує</strong> — подано запит на видачу, адмін ще не підтвердив.
-    </p>
+    <details class="page-help">
+      <summary>Пояснення статусів</summary>
+      <p>
+        Пошук за аудиторією або іменем, фільтр за статусом ключа.
+        <strong>Вільна</strong> — персонал видає одразу, інші подають запит адміну;
+        <strong>Зайнята</strong> — у користувача на руках;
+        <strong>Очікує</strong> — подано запит на видачу, адмін ще не підтвердив.
+      </p>
+    </details>
   </div>
 
   <form class="search-bar search-bar--filters" method="get" action="{% url 'key_list' %}" role="search">
@@ -64,8 +67,8 @@
     </p>
   {% endif %}
 
-  <div class="table-wrap">
-    <table class="data-table">
+  <div class="table-wrap table-wrap--responsive">
+    <table class="data-table data-table--responsive">
       <thead>
         <tr>
           <th>Аудиторія</th>
@@ -79,18 +82,18 @@
       <tbody>
         {% for key in keys %}
           <tr{% if key.is_long_held %} class="data-table__row--warn"{% endif %}>
-            <td>{{ key.auditory }}</td>
-            <td>{{ key.get_status_display }}</td>
-            <td>{% if key.holder %}{{ key.holder }}{% else %}—{% endif %}</td>
-            <td>{% if key.last_activity_at %}{{ key.last_activity_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td>
-            <td>
+            <td data-label="Аудиторія">{{ key.auditory }}</td>
+            <td data-label="Статус">{{ key.get_status_display }}</td>
+            <td data-label="В руках у">{% if key.holder %}{{ key.holder }}{% else %}—{% endif %}</td>
+            <td data-label="Остання дія">{% if key.last_activity_at %}{{ key.last_activity_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td>
+            <td data-label="На руках">
               {% if key.held_duration_display %}
                 <span class="held-duration{% if key.is_long_held %} held-duration--long{% endif %}" title="з {{ key.held_since|date:'d.m.Y H:i' }}">{{ key.held_duration_display }}</span>
               {% else %}
                 —
               {% endif %}
             </td>
-            <td>
+            <td data-label="Дії" class="data-table__actions">
               {% if key.status == 'free' %}
                 {% if user.is_staff %}
                   <form method="post" action="{% url 'take_key' key.id %}" class="inline-form">

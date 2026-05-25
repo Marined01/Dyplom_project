@@ -162,8 +162,8 @@
         <h2 id="dashboard-long-held-heading" class="dashboard-section__title">Довго на руках (≥{{ long_held_days }} дн.)</h2>
         <a href="{% url 'key_list' %}?status=taken&amp;long_held=1&amp;sort=held" class="btn btn--ghost btn--sm">Усі ({{ long_held_count }})</a>
       </div>
-      <div class="table-wrap">
-        <table class="data-table data-table--compact">
+      <div class="table-wrap table-wrap--responsive">
+        <table class="data-table data-table--compact data-table--responsive">
           <thead>
             <tr>
               <th>Аудиторія</th>
@@ -175,10 +175,10 @@
           <tbody>
             {% for key in long_held_keys %}
               <tr>
-                <td>{{ key.auditory }}</td>
-                <td>{{ key.holder }}</td>
-                <td><span class="held-duration held-duration--long">{{ key.held_duration_display }}</span></td>
-                <td class="card__meta">{{ key.held_since|date:"d.m.Y H:i" }}</td>
+                <td data-label="Аудиторія">{{ key.auditory }}</td>
+                <td data-label="Тримач">{{ key.holder }}</td>
+                <td data-label="На руках"><span class="held-duration held-duration--long">{{ key.held_duration_display }}</span></td>
+                <td class="card__meta" data-label="З">{{ key.held_since|date:"d.m.Y H:i" }}</td>
               </tr>
             {% endfor %}
           </tbody>
