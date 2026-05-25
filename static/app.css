@@ -1505,8 +1505,10 @@ body.nav-open .nav-toggle__bars span:nth-child(3) {
 }
 
 .btn--sm {
+  min-height: 2rem;
   padding: 0.35rem 0.75rem;
   font-size: 0.85rem;
+  line-height: 1.2;
 }
 
 .data-table--compact th,

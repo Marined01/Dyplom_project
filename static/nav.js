@@ -17,6 +17,7 @@
     }
     el.classList.toggle("site-nav--open", open);
     btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", open ? "Закрити меню" : "Відкрити меню");
     document.body.classList.toggle("nav-open", open);
   }
 
