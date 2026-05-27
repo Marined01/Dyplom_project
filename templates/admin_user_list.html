@@ -40,8 +40,8 @@
     <p class="search-bar__hint">Знайдено: <strong>{{ users_total }}</strong></p>
   {% endif %}
 
-  <div class="table-wrap">
-    <table class="data-table">
+  <div class="table-wrap table-wrap--responsive">
+    <table class="data-table data-table--responsive">
       <thead>
         <tr>
           <th>Прізвище, ім’я</th>
@@ -55,24 +55,24 @@
       <tbody>
         {% for u in users %}
           <tr{% if not u.is_active %} class="data-table__row--muted"{% endif %}>
-            <td>{{ u.surname }} {{ u.name }}</td>
-            <td>{{ u.email }}</td>
-            <td>{{ u.keys_held_count }}</td>
-            <td>
+            <td data-label="Ім’я">{{ u.surname }} {{ u.name }}</td>
+            <td data-label="Email">{{ u.email }}</td>
+            <td data-label="Ключів">{{ u.keys_held_count }}</td>
+            <td data-label="Статус">
               {% if u.is_active %}
                 <span class="status-pill status-pill--success">Активний</span>
               {% else %}
                 <span class="status-pill status-pill--muted">Заблокований</span>
               {% endif %}
             </td>
-            <td>
+            <td data-label="Роль">
               {% if u.is_staff %}
                 <span class="status-pill status-pill--info">Персонал</span>
               {% else %}
                 <span class="card__meta">Користувач</span>
               {% endif %}
             </td>
-            <td>
+            <td data-label="" class="data-table__actions">
               <a href="{% url 'admin_user_edit' u.id %}" class="btn btn--ghost btn--sm">Редагувати</a>
             </td>
           </tr>
