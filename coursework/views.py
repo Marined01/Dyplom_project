@@ -226,6 +226,17 @@ def transfer_key(request, key_id):
             messages.error(request, 'Користувача не знайдено.')
             return redirect('transfer_key', key_id=key.id)
 
+        if new_holder.id == request.user.id:
+            messages.error(request, 'Не можна передати ключ собі.')
+            return redirect('transfer_key', key_id=key.id)
+
+        if not user_can_access_key(new_holder, key):
+            messages.error(
+                request,
+                'Отримувач не має доступу до цієї аудиторії.',
+            )
+            return redirect('transfer_key', key_id=key.id)
+
         existing_request = Key_transfer.objects.filter(
             from_user=request.user, key=key, is_approved=False,
             created_at__gte=timezone.now() - timedelta(minutes=15)
@@ -251,7 +262,15 @@ def my_transfer_requests(request):
         created_at__gte=timezone.now() - timedelta(minutes=15)
     ).select_related('from_user', 'to_user', 'key')
 
-    return render(request, 'transfer_request.html', {'requests': requests})
+    request_items = [
+        {
+            "request": req,
+            "can_accept": user_can_access_key(request.user, req.key),
+        }
+        for req in requests
+    ]
+
+    return render(request, 'transfer_request.html', {'request_items': request_items})
 
 @login_required
 @require_POST
@@ -260,6 +279,15 @@ def approve_transfer_request(request, request_id):
 
     if transfer_request.to_user_id != request.user.id:
         messages.error(request, "Цей запит адресований не вам.")
+        return redirect('incoming_transfers')
+
+    if not user_can_access_key(request.user, transfer_request.key):
+        transfer_request.is_expired = True
+        transfer_request.save()
+        messages.error(
+            request,
+            "У вас немає доступу до цієї аудиторії — прийняти передачу неможливо.",
+        )
         return redirect('incoming_transfers')
 
     if transfer_request.is_valid():
@@ -446,6 +474,12 @@ def approve_key_request(request, request_id):
 
     if key_request.is_valid():
         key = key_request.key
+        if not user_can_access_key(key_request.user, key):
+            messages.error(
+                request,
+                f"Користувач більше не має доступу до аудиторії {key.auditory}.",
+            )
+            return redirect("admin_requests")
         try:
             key.take_key(key_request.user)
             key_request.is_approved = True
