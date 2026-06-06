@@ -9,7 +9,14 @@ from django.http import Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib import messages
-from coursework.models import Key, User, Key_requests, Key_return_request, Key_transfer
+from coursework.models import (
+    AccessGroup,
+    Key,
+    User,
+    Key_requests,
+    Key_return_request,
+    Key_transfer,
+)
 from django.urls import reverse
 
 from coursework.admin_requests import (
@@ -24,6 +31,7 @@ from coursework.key_metrics import (
     apply_long_held_filter,
 )
 from coursework.dashboard import get_dashboard_stats
+from coursework.groups_admin import build_access_groups_queryset
 from coursework.users_admin import (
     USERS_PER_PAGE,
     build_users_queryset,
@@ -607,3 +615,90 @@ def admin_user_edit(request, user_id):
             "can_edit_staff": request.user.is_superuser,
         },
     )
+
+def _parse_access_group_form(request):
+    name = request.POST.get("name", "").strip()
+    key_ids = []
+    for raw_id in request.POST.getlist("keys"):
+        try:
+            key_ids.append(int(raw_id))
+        except (TypeError, ValueError):
+            continue
+    return name, key_ids
+
+
+def _render_access_group_form(request, *, group, is_create):
+    all_keys = Key.objects.order_by("auditory")
+    if group is None:
+        selected_ids = set()
+    else:
+        selected_ids = set(group.keys.values_list("pk", flat=True))
+    return render(
+        request,
+        "admin_access_group_form.html",
+        {
+            "group": group,
+            "is_create": is_create,
+            "all_keys": all_keys,
+            "selected_ids": selected_ids,
+        },
+    )
+
+@staff_member_required
+def admin_access_group_list(request):
+    groups = build_access_groups_queryset()
+    return render(
+        request,
+        "admin_access_group_list.html",
+        {"groups": groups},
+    )
+
+@staff_member_required
+def admin_access_group_create(request):
+    if request.method == "POST":
+        name, key_ids = _parse_access_group_form(request)
+        if not name:
+            messages.error(request, "Назву групи обов’язково вказати.")
+            return _render_access_group_form(request, group=None, is_create=True)
+
+        if AccessGroup.objects.filter(name=name).exists():
+            messages.error(request, "Група з такою назвою вже існує.")
+            return _render_access_group_form(request, group=None, is_create=True)
+
+        group = AccessGroup.objects.create(name=name)
+        valid_keys = Key.objects.filter(pk__in=key_ids)
+        group.keys.set(valid_keys)
+        messages.success(request, f"Групу «{group.name}» створено.")
+        return redirect("admin_access_group_list")
+
+    return _render_access_group_form(request, group=None, is_create=True)
+
+
+@staff_member_required
+def admin_access_group_edit(request, group_id):
+    group = get_object_or_404(AccessGroup, id=group_id)
+
+    if request.method == "POST":
+        if request.POST.get("action") == "delete":
+            name = group.name
+            group.delete()
+            messages.success(request, f"Групу «{name}» видалено.")
+            return redirect("admin_access_group_list")
+
+        name, key_ids = _parse_access_group_form(request)
+        if not name:
+            messages.error(request, "Назву групи обов’язково вказати.")
+            return _render_access_group_form(request, group=group, is_create=False)
+
+        if AccessGroup.objects.filter(name=name).exclude(pk=group.pk).exists():
+            messages.error(request, "Група з такою назвою вже існує.")
+            return _render_access_group_form(request, group=group, is_create=False)
+
+        group.name = name
+        group.save()
+        valid_keys = Key.objects.filter(pk__in=key_ids)
+        group.keys.set(valid_keys)
+        messages.success(request, f"Групу «{group.name}» оновлено.")
+        return redirect("admin_access_group_list")
+
+    return _render_access_group_form(request, group=group, is_create=False)
