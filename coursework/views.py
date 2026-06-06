@@ -25,6 +25,11 @@ from coursework.admin_requests import (
     get_pending_request_counts,
     normalize_request_type,
 )
+from coursework.access import (
+    keys_queryset_for_user,
+    user_can_access_key,
+    user_has_any_access,
+)
 from coursework.key_metrics import (
     LONG_HELD_DAYS,
     apply_key_sort,
@@ -114,7 +119,14 @@ def logout_page(request):
 @login_required
 def home_page(request):
     users_keys = Key.objects.filter(holder=request.user)
-    return render(request, 'home_page.html', {'users_keys': users_keys})
+    return render(
+        request,
+        "home_page.html",
+        {
+            "users_keys": users_keys,
+            "has_any_access": user_has_any_access(request.user),
+        },
+    )
 
 @login_required
 def key_list(request):
@@ -146,12 +158,18 @@ def key_list(request):
         keys = keys.order_by("auditory")
 
     has_filters = bool(query or status or long_held or sort)
+    accessible_key_ids = None
+    if not request.user.is_staff:
+        accessible_key_ids = set(
+            keys_queryset_for_user(request.user).values_list("pk", flat=True)
+        )
     return render(
         request,
         "key_list.html",
         {
             "keys": keys,
             "user": request.user,
+            "accessible_key_ids": accessible_key_ids,
             "query": query,
             "status_filter": status,
             "sort": sort if request.user.is_staff else "",
@@ -281,7 +299,11 @@ def reject_transfer_request(request, request_id):
 
 @login_required
 def free_keys(request):
-    free_keys = Key.objects.filter(status="free").order_by("auditory")
+    free_keys = (
+        keys_queryset_for_user(request.user)
+        .filter(status="free")
+        .order_by("auditory")
+    )
     query = request.GET.get("q", "").strip()
     if query:
         free_keys = free_keys.filter(auditory__icontains=query)
@@ -292,6 +314,7 @@ def free_keys(request):
             "free_keys": free_keys,
             "query": query,
             "free_keys_count": free_keys.count(),
+            "has_any_access": user_has_any_access(request.user),
         },
     )
 
@@ -319,6 +342,10 @@ def profile_edit(request):
 @require_POST
 def take_key_request(request, key_id):
     key = get_object_or_404(Key, id=key_id)
+
+    if not user_can_access_key(request.user, key):
+        messages.error(request, "У вас немає доступу до цього ключа.")
+        return _redirect_after_form(request)
 
     if key.status != "free":
         messages.error(request, "Цей ключ недоступний для запиту на видачу.")

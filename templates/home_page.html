@@ -25,6 +25,10 @@
       {% endfor %}
     </div>
   {% else %}
-    <p class="empty-state">У вас немає ключів. Перегляньте <a href="{% url 'free_keys' %}">вільні аудиторії</a>, щоб подати запит на видачу.</p>
+    {% if has_any_access %}
+      <p class="empty-state">У вас немає ключів. Перегляньте <a href="{% url 'free_keys' %}">вільні аудиторії</a>, щоб подати запит на видачу.</p>
+    {% else %}
+      <p class="empty-state">У вас немає ключів і немає доступу до аудиторій. Зверніться до адміністратора.</p>
+    {% endif %}
   {% endif %}
 {% endblock %}
