@@ -18,5 +18,7 @@ done
 echo "База доступна."
 
 python manage.py migrate --noinput
+python manage.py ensure_admin
+python manage.py seed_auditories
 
 exec "$@"

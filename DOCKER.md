@@ -1,14 +1,14 @@
 # Запуск через Docker Compose
 
-Один файл описує **два сервіси**: PostgreSQL і Django. Команда `docker compose up` піднімає обидва.
+Один файл описує **два сервіси**: PostgreSQL і Django. 
 
-Детальніше про локальний запуск без Docker, сторінки застосунку та змінні середовища — у [README.md](README.md).
+Детальніше про локальний запуск без Docker, перевірку застосунку та змінні середовища — у [README.md](README.md).
 
 ---
 
 ## Що потрібно
 
-1. [Docker Desktop](https://www.docker.com/products/docker-desktop/) (macOS / Windows / Linux)
+1. [Docker Desktop](https://www.docker.com/products/docker-desktop/) 
 2. Файл `.env` у корені проєкту (див. нижче)
 
 ---
@@ -46,7 +46,7 @@ docker compose up --build
 | Сервіс | Роль |
 |--------|------|
 | **db** | PostgreSQL 16, дані в томі `postgres_data` |
-| **web** | `docker/entrypoint.sh`: чекає БД → `migrate` → `runserver` |
+| **web** | `docker/entrypoint.sh`: чекає БД → `migrate` → `ensure_admin` → `seed_auditories` → `runserver` |
 
 Контейнер **web** з’єднується з БД за іменем **`db`** (внутрішня мережа Docker), не `localhost`.
 
@@ -56,51 +56,54 @@ docker compose up --build
 
 ### Адміністратор
 
-У БД ще немає користувачів. У **новому** терміналі (контейнери мають працювати):
+**Автоматично (Docker):** додайте в `.env`:
+
+```env
+ADMIN_EMAIL=admin@uni.ua
+ADMIN_PASSWORD=your-secure-password
+ADMIN_NAME=Admin
+ADMIN_SURNAME=User
+```
+
+Після `docker compose up` entrypoint виконає `migrate`, потім `ensure_admin`. Якщо користувача з таким email **ще немає** — створить staff/superuser. Якщо **вже є** — нічого не змінює.
+
+**Аудиторії (опційно):** у `.env` можна додати:
+
+```env
+SEED_AUDITORIES=101,102,103,201
+```
+
+При старті створяться вільні ключі для цих номерів, якщо їх ще немає в БД.
+
+**Вручну** (якщо `ADMIN_*` не задані або потрібен інший обліковий запис):
 
 ```bash
 docker compose exec web python manage.py createsuperuser
 ```
 
-Уведіть email, ім’я, прізвище та пароль. Користувач отримає `is_staff` і зможе відкрити чергу запитів, дашборд, журнал, `/users/`, `/groups/`.
-
 ### Аудиторії (ключі)
 
-У застосунку немає окремої сторінки «додати аудиторію». Найпростіше створити ключі **через Django shell** (без `/admin/`):
+Якщо `SEED_AUDITORIES` не задано — ключі можна додати **через Django shell**:
 
 ```bash
 docker compose exec web python manage.py shell
 ```
 
-У консолі Python:
-
 ```python
 from coursework.models import Key
 
 Key.objects.create(auditory="101")
-Key.objects.create(auditory="102")
-
-# або кілька одразу:
 Key.objects.bulk_create([
     Key(auditory="201"),
     Key(auditory="202"),
-    Key(auditory="203"),
 ])
-
-# перевірити:
-list(Key.objects.values_list("auditory", flat=True))
 ```
 
 Вийти з shell: `exit()` або `Ctrl+D`.
 
 ### Доступ користувачів
 
-Нові користувачі реєструються на `/registration/` **без доступу до аудиторій**. Після реєстрації система підказує звернутися до адміністратора.
-
-Адмін призначає доступ:
-
-- **Групи доступу** — [http://127.0.0.1:8000/groups/](http://127.0.0.1:8000/groups/)
-- **Групи + додаткові аудиторії** для конкретного користувача — `/users/` → редагування
+Нові користувачі реєструються на `/registration/` **без доступу до аудиторій**. Адміністратор призначає доступ на `/groups/` та `/users/`. Як перевірити сценарії вручну — у [README.md](README.md#перевірка-застосунку).
 
 ---
 
@@ -138,4 +141,4 @@ Python 3.12+, PostgreSQL на `localhost` — покроково в [README.md](
 
 ## Примітка
 
-У контейнері використовується **сервер розробки** Django (`runserver`) — достатньо для демонстрації та розробки, не для production.
+У контейнері використовується **сервер розробки** Django (`runserver`) — достатньо для демонстрації та розробки.
