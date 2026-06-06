@@ -31,7 +31,12 @@ from coursework.key_metrics import (
     apply_long_held_filter,
 )
 from coursework.dashboard import get_dashboard_stats
-from coursework.groups_admin import build_access_groups_queryset
+from coursework.groups_admin import (
+    build_access_groups_queryset,
+    parse_user_access_post,
+    save_user_access,
+    user_access_form_context,
+)
 from coursework.users_admin import (
     USERS_PER_PAGE,
     build_users_queryset,
@@ -575,19 +580,38 @@ def admin_user_edit(request, user_id):
     target = get_object_or_404(User, id=user_id)
     is_self = target.id == request.user.id
 
+    def _render(extra=None):
+        context = {
+            "target": target,
+            "is_self": is_self,
+            "keys_held": keys_held_by_user(target),
+            "can_edit_staff": request.user.is_superuser,
+            "show_access_controls": not is_self and not target.is_staff,
+        }
+        if context["show_access_controls"]:
+            context.update(
+                user_access_form_context(
+                    target,
+                    group_ids=extra.get("group_ids") if extra else None,
+                    extra_key_ids=extra.get("extra_key_ids") if extra else None,
+                )
+            )
+        return render(request, "admin_user_edit.html", context)
+
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
         surname = request.POST.get("surname", "").strip()
         email = request.POST.get("email", "").strip().lower()
         password = request.POST.get("password", "").strip()
+        group_ids, extra_key_ids = parse_user_access_post(request)
 
         if not name or not surname or not email:
             messages.error(request, "Ім’я, прізвище та email обов’язкові.")
-            return redirect("admin_user_edit", user_id=target.id)
+            return _render({"group_ids": group_ids, "extra_key_ids": extra_key_ids})
 
         if User.objects.filter(email=email).exclude(pk=target.pk).exists():
             messages.error(request, "Користувач з таким email уже існує.")
-            return redirect("admin_user_edit", user_id=target.id)
+            return _render({"group_ids": group_ids, "extra_key_ids": extra_key_ids})
 
         target.name = name
         target.surname = surname
@@ -596,25 +620,22 @@ def admin_user_edit(request, user_id):
         if password:
             target.set_password(password)
 
+        will_be_staff = target.is_staff
         if not is_self:
             target.is_active = request.POST.get("is_active") == "on"
             if request.user.is_superuser:
-                target.is_staff = request.POST.get("is_staff") == "on"
+                will_be_staff = request.POST.get("is_staff") == "on"
+                target.is_staff = will_be_staff
 
         target.save()
+
+        if not is_self and not will_be_staff:
+            save_user_access(target, group_ids, extra_key_ids)
+
         messages.success(request, f"Дані користувача {target} оновлено.")
         return redirect("admin_user_list")
 
-    return render(
-        request,
-        "admin_user_edit.html",
-        {
-            "target": target,
-            "is_self": is_self,
-            "keys_held": keys_held_by_user(target),
-            "can_edit_staff": request.user.is_superuser,
-        },
-    )
+    return _render()
 
 def _parse_access_group_form(request):
     name = request.POST.get("name", "").strip()

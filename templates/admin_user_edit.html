@@ -48,6 +48,62 @@
           <p class="hint">Це ваш обліковий запис — статус і роль тут не змінюються.</p>
         {% endif %}
 
+        {% if show_access_controls %}
+          <div class="field">
+            <span class="field-label">Групи доступу</span>
+            <p class="hint">Без груп і без додаткових аудиторій користувач не має доступу до ключів.</p>
+            {% if all_access_groups %}
+              <div class="form-checks checkbox-list">
+                {% for group in all_access_groups %}
+                  <label class="form-check">
+                    <input
+                      class="form-check__input"
+                      type="checkbox"
+                      name="access_groups"
+                      value="{{ group.id }}"
+                      {% if group.id in selected_group_ids %}checked{% endif %}
+                    >
+                    <span class="form-check__label">{{ group.name }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="empty-state">
+                Груп ще немає.
+                <a href="{% url 'admin_access_group_create' %}">Створити групу</a>
+              </p>
+            {% endif %}
+          </div>
+
+          <div class="field">
+            <span class="field-label">Додаткові аудиторії (винятки)</span>
+            <p class="hint">Окремі ключі поза групами — для індивідуальних винятків.</p>
+            {% if all_keys_for_access %}
+              <div class="form-checks checkbox-list">
+                {% for key in all_keys_for_access %}
+                  <label class="form-check">
+                    <input
+                      class="form-check__input"
+                      type="checkbox"
+                      name="allowed_keys"
+                      value="{{ key.id }}"
+                      {% if key.id in selected_extra_key_ids %}checked{% endif %}
+                    >
+                    <span class="form-check__label">
+                      Ауд. {{ key.auditory }}
+                      <span class="card__meta">· {{ key.get_status_display }}</span>
+                    </span>
+                  </label>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="empty-state">У системі ще немає ключів.</p>
+            {% endif %}
+          </div>
+        {% elif not is_self and target.is_staff %}
+          <p class="hint">Персонал має доступ до всіх аудиторій — групи доступу не застосовуються.</p>
+        {% endif %}
+
         <button type="submit" class="btn">Зберегти</button>
       </form>
     </section>
