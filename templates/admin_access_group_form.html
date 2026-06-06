@@ -24,7 +24,7 @@
 
       <div class="field">
         <span class="field-label">Дозволені аудиторії</span>
-        <p class="hint">Оберіть ключі, до яких матимуть доступ учасники цієї групи.</p>
+        <p class="hint">Ключі, до яких матимуть доступ учасники цієї групи.</p>
         {% if all_keys %}
           <div class="form-checks checkbox-list">
             {% for key in all_keys %}
@@ -34,7 +34,7 @@
                   type="checkbox"
                   name="keys"
                   value="{{ key.id }}"
-                  {% if key.id in selected_ids %}checked{% endif %}
+                  {% if key.id in selected_key_ids %}checked{% endif %}
                 >
                 <span class="form-check__label">
                   Ауд. {{ key.auditory }}
@@ -48,6 +48,32 @@
         {% endif %}
       </div>
 
+      <div class="field">
+        <span class="field-label">Користувачі групи</span>
+        <p class="hint">Облікові записи, які отримають доступ до обраних аудиторій. Персонал і так має повний доступ.</p>
+        {% if all_users %}
+          <div class="form-checks checkbox-list">
+            {% for u in all_users %}
+              <label class="form-check">
+                <input
+                  class="form-check__input"
+                  type="checkbox"
+                  name="users"
+                  value="{{ u.id }}"
+                  {% if u.id in selected_user_ids %}checked{% endif %}
+                >
+                <span class="form-check__label">
+                  {{ u.surname }} {{ u.name }}
+                  <span class="card__meta">· {{ u.email }}{% if u.is_staff %} · персонал{% endif %}</span>
+                </span>
+              </label>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="empty-state">У системі ще немає користувачів.</p>
+        {% endif %}
+      </div>
+
       <button type="submit" class="btn">{% if is_create %}Створити{% else %}Зберегти{% endif %}</button>
     </form>
   </section>
@@ -55,7 +81,7 @@
   {% if not is_create %}
     <section class="panel panel--danger">
       <h2 class="panel__title">Видалити групу</h2>
-      <p class="hint">Користувачі втратять доступ до аудиторій цієї групи.</p>
+      <p class="hint">Користувачі втратять доступ до аудиторій цієї групи (якщо немає інших груп або винятків).</p>
       <form method="post" onsubmit="return confirm('Видалити групу «{{ group.name }}»?');">
         {% csrf_token %}
         <input type="hidden" name="action" value="delete">

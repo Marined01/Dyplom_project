@@ -619,30 +619,60 @@ def admin_user_edit(request, user_id):
 def _parse_access_group_form(request):
     name = request.POST.get("name", "").strip()
     key_ids = []
+    user_ids = []
     for raw_id in request.POST.getlist("keys"):
         try:
             key_ids.append(int(raw_id))
         except (TypeError, ValueError):
             continue
-    return name, key_ids
+    for raw_id in request.POST.getlist("users"):
+        try:
+            user_ids.append(int(raw_id))
+        except (TypeError, ValueError):
+            continue
+    return name, key_ids, user_ids
 
 
-def _render_access_group_form(request, *, group, is_create):
-    all_keys = Key.objects.order_by("auditory")
-    if group is None:
-        selected_ids = set()
+def _access_group_form_context(*, group, is_create, key_ids=None, user_ids=None):
+    if key_ids is not None:
+        selected_key_ids = set(key_ids)
+    elif group is None:
+        selected_key_ids = set()
     else:
-        selected_ids = set(group.keys.values_list("pk", flat=True))
+        selected_key_ids = set(group.keys.values_list("pk", flat=True))
+
+    if user_ids is not None:
+        selected_user_ids = set(user_ids)
+    elif group is None:
+        selected_user_ids = set()
+    else:
+        selected_user_ids = set(group.members.values_list("pk", flat=True))
+    return {
+        "group": group,
+        "is_create": is_create,
+        "all_keys": Key.objects.order_by("auditory"),
+        "all_users": User.objects.order_by("surname", "name", "email"),
+        "selected_key_ids": selected_key_ids,
+        "selected_user_ids": selected_user_ids,
+    }
+
+def _render_access_group_form(request, *, group, is_create, key_ids=None, user_ids=None):
     return render(
         request,
         "admin_access_group_form.html",
-        {
-            "group": group,
-            "is_create": is_create,
-            "all_keys": all_keys,
-            "selected_ids": selected_ids,
-        },
+        _access_group_form_context(
+            group=group,
+            is_create=is_create,
+            key_ids=key_ids,
+            user_ids=user_ids,
+        ),
     )
+
+def _save_access_group_members(group, key_ids, user_ids):
+    valid_keys = Key.objects.filter(pk__in=key_ids)
+    valid_users = User.objects.filter(pk__in=user_ids)
+    group.keys.set(valid_keys)
+    group.members.set(valid_users)
 
 @staff_member_required
 def admin_access_group_list(request):
@@ -656,18 +686,21 @@ def admin_access_group_list(request):
 @staff_member_required
 def admin_access_group_create(request):
     if request.method == "POST":
-        name, key_ids = _parse_access_group_form(request)
+        name, key_ids, user_ids = _parse_access_group_form(request)
         if not name:
             messages.error(request, "Назву групи обов’язково вказати.")
-            return _render_access_group_form(request, group=None, is_create=True)
+            return _render_access_group_form(
+                request, group=None, is_create=True, key_ids=key_ids, user_ids=user_ids
+            )
 
         if AccessGroup.objects.filter(name=name).exists():
             messages.error(request, "Група з такою назвою вже існує.")
-            return _render_access_group_form(request, group=None, is_create=True)
+            return _render_access_group_form(
+                request, group=None, is_create=True, key_ids=key_ids, user_ids=user_ids
+            )
 
         group = AccessGroup.objects.create(name=name)
-        valid_keys = Key.objects.filter(pk__in=key_ids)
-        group.keys.set(valid_keys)
+        _save_access_group_members(group, key_ids, user_ids)
         messages.success(request, f"Групу «{group.name}» створено.")
         return redirect("admin_access_group_list")
 
@@ -685,19 +718,30 @@ def admin_access_group_edit(request, group_id):
             messages.success(request, f"Групу «{name}» видалено.")
             return redirect("admin_access_group_list")
 
-        name, key_ids = _parse_access_group_form(request)
+        name, key_ids, user_ids = _parse_access_group_form(request)
         if not name:
             messages.error(request, "Назву групи обов’язково вказати.")
-            return _render_access_group_form(request, group=group, is_create=False)
+            return _render_access_group_form(
+                request,
+                group=group,
+                is_create=False,
+                key_ids=key_ids,
+                user_ids=user_ids,
+            )
 
         if AccessGroup.objects.filter(name=name).exclude(pk=group.pk).exists():
             messages.error(request, "Група з такою назвою вже існує.")
-            return _render_access_group_form(request, group=group, is_create=False)
+            return _render_access_group_form(
+                request,
+                group=group,
+                is_create=False,
+                key_ids=key_ids,
+                user_ids=user_ids,
+            )
 
         group.name = name
         group.save()
-        valid_keys = Key.objects.filter(pk__in=key_ids)
-        group.keys.set(valid_keys)
+        _save_access_group_members(group, key_ids, user_ids)
         messages.success(request, f"Групу «{group.name}» оновлено.")
         return redirect("admin_access_group_list")
 
