@@ -60,7 +60,6 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.admin.views.decorators import staff_member_required
 
 def _redirect_after_form(request, default_view="home"):
-    """Безпечний редірект після POST (поле next у формі)."""
     next_url = request.POST.get("next", "").strip()
     if next_url and url_has_allowed_host_and_scheme(
         next_url, allowed_hosts={request.get_host()}
@@ -91,7 +90,11 @@ def registration_page(request):
 
         else:
             new_user = User.objects.create_user(name=name, surname=surname ,email=email, password=password)
-            messages.success(request, 'Користувача створено')
+            messages.success(request, 'Користувача створено.')
+            messages.info(
+                request,
+                'Щоб отримати доступ до аудиторій і ключів, зверніться до адміністратора.',
+            )
             return redirect('login')
 
     return render(request, 'registration_page.html')

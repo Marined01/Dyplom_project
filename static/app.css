@@ -2060,6 +2060,13 @@ body.auth-page .app-main {
   margin-top: 0.5rem;
 }
 
+.auth-panel > .hint {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin: 1rem 0 0;
+  text-align: center;
+}
+
 .auth-footer-link {
   text-align: center;
   margin-top: 1.25rem;
