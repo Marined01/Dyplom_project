@@ -39,12 +39,45 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Опційно (якщо в `.env` задані `ADMIN_*` і `SEED_AUDITORIES`):
+Опційно (якщо в `.env` задані `ADMIN_*`):
 
 ```bash
 python manage.py ensure_admin
+```
+
+### Аудиторії (без Docker)
+
+**Через `.env` і management-команду** — додайте в `.env`:
+
+```env
+SEED_AUDITORIES=101,102,103,201
+```
+
+Потім:
+
+```bash
 python manage.py seed_auditories
 ```
+
+Створюються вільні ключі для номерів, яких ще немає в БД. Повторний запуск дублікатів не створює.
+
+**Вручну через shell:**
+
+```bash
+python manage.py shell
+```
+
+```python
+from coursework.models import Key
+
+Key.objects.create(auditory="101")
+Key.objects.bulk_create([
+    Key(auditory="201"),
+    Key(auditory="202"),
+])
+```
+
+Вийти: `exit()` або `Ctrl+D`.
 
 ---
 
