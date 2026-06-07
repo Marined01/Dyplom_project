@@ -61,7 +61,7 @@
         <nav id="site-nav" class="site-nav{% if user.is_staff %} site-nav--staff{% endif %}" aria-label="Головне меню">
           <ul class="site-nav__list site-nav__list--main">
             <li><a href="{% url 'home' %}">Головна</a></li>
-            <li><a href="{% url 'free_keys' %}">Вільні аудиторії</a></li>
+            <li><a href="{% url 'free_keys' %}">Вільні авдиторії</a></li>
             <li><a href="{% url 'incoming_transfers' %}">Передавання</a></li>
             <li><a href="{% url 'key_list' %}">Ключі та пошук</a></li>
             {% if user.is_staff %}
