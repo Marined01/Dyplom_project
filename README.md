@@ -4,11 +4,11 @@
 
 **Стек:** Python 3.12, Django 6, PostgreSQL 16.
 
+> **Рекомендовано запускати через Docker** — не потрібно окремо встановлювати PostgreSQL і налаштовувати Python-оточення. Достатньо [Docker Desktop](https://www.docker.com/products/docker-desktop/) і файлу `.env`. Інструкція: [DOCKER.md](DOCKER.md). Локальний запуск без Docker — нижче, як альтернатива.
+
 ---
 
 ## Швидкий старт (Docker)
-
-Рекомендований спосіб запуску.
 
 ```bash
 cp .env.example .env
