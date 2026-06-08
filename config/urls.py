@@ -40,6 +40,9 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='dashboard'),
     path('users/', views.admin_user_list, name='admin_user_list'),
     path('users/<int:user_id>/edit/', views.admin_user_edit, name='admin_user_edit'),
+    path('groups/', views.admin_access_group_list, name='admin_access_group_list'),
+    path('groups/new/', views.admin_access_group_create, name='admin_access_group_create'),
+    path('groups/<int:group_id>/edit/', views.admin_access_group_edit, name='admin_access_group_edit'),
     path('action_view/', views.action_view, name='action_view'),
     path('action_view/export/', views.action_view_export, name='action_view_export'),
 

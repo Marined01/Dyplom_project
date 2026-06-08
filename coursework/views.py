@@ -9,7 +9,14 @@ from django.http import Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib import messages
-from coursework.models import Key, User, Key_requests, Key_return_request, Key_transfer
+from coursework.models import (
+    AccessGroup,
+    Key,
+    User,
+    Key_requests,
+    Key_return_request,
+    Key_transfer,
+)
 from django.urls import reverse
 
 from coursework.admin_requests import (
@@ -18,12 +25,23 @@ from coursework.admin_requests import (
     get_pending_request_counts,
     normalize_request_type,
 )
+from coursework.access import (
+    keys_queryset_for_user,
+    user_can_access_key,
+    user_has_any_access,
+)
 from coursework.key_metrics import (
     LONG_HELD_DAYS,
     apply_key_sort,
     apply_long_held_filter,
 )
 from coursework.dashboard import get_dashboard_stats
+from coursework.groups_admin import (
+    build_access_groups_queryset,
+    parse_user_access_post,
+    save_user_access,
+    user_access_form_context,
+)
 from coursework.users_admin import (
     USERS_PER_PAGE,
     build_users_queryset,
@@ -42,7 +60,6 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.admin.views.decorators import staff_member_required
 
 def _redirect_after_form(request, default_view="home"):
-    """Безпечний редірект після POST (поле next у формі)."""
     next_url = request.POST.get("next", "").strip()
     if next_url and url_has_allowed_host_and_scheme(
         next_url, allowed_hosts={request.get_host()}
@@ -73,7 +90,11 @@ def registration_page(request):
 
         else:
             new_user = User.objects.create_user(name=name, surname=surname ,email=email, password=password)
-            messages.success(request, 'Користувача створено')
+            messages.success(request, 'Користувача створено.')
+            messages.info(
+                request,
+                'Щоб отримати доступ до аудиторій і ключів, зверніться до адміністратора.',
+            )
             return redirect('login')
 
     return render(request, 'registration_page.html')
@@ -101,7 +122,14 @@ def logout_page(request):
 @login_required
 def home_page(request):
     users_keys = Key.objects.filter(holder=request.user)
-    return render(request, 'home_page.html', {'users_keys': users_keys})
+    return render(
+        request,
+        "home_page.html",
+        {
+            "users_keys": users_keys,
+            "has_any_access": user_has_any_access(request.user),
+        },
+    )
 
 @login_required
 def key_list(request):
@@ -133,12 +161,18 @@ def key_list(request):
         keys = keys.order_by("auditory")
 
     has_filters = bool(query or status or long_held or sort)
+    accessible_key_ids = None
+    if not request.user.is_staff:
+        accessible_key_ids = set(
+            keys_queryset_for_user(request.user).values_list("pk", flat=True)
+        )
     return render(
         request,
         "key_list.html",
         {
             "keys": keys,
             "user": request.user,
+            "accessible_key_ids": accessible_key_ids,
             "query": query,
             "status_filter": status,
             "sort": sort if request.user.is_staff else "",
@@ -195,6 +229,17 @@ def transfer_key(request, key_id):
             messages.error(request, 'Користувача не знайдено.')
             return redirect('transfer_key', key_id=key.id)
 
+        if new_holder.id == request.user.id:
+            messages.error(request, 'Не можна передати ключ собі.')
+            return redirect('transfer_key', key_id=key.id)
+
+        if not user_can_access_key(new_holder, key):
+            messages.error(
+                request,
+                'Отримувач не має доступу до цієї аудиторії.',
+            )
+            return redirect('transfer_key', key_id=key.id)
+
         existing_request = Key_transfer.objects.filter(
             from_user=request.user, key=key, is_approved=False,
             created_at__gte=timezone.now() - timedelta(minutes=15)
@@ -220,7 +265,15 @@ def my_transfer_requests(request):
         created_at__gte=timezone.now() - timedelta(minutes=15)
     ).select_related('from_user', 'to_user', 'key')
 
-    return render(request, 'transfer_request.html', {'requests': requests})
+    request_items = [
+        {
+            "request": req,
+            "can_accept": user_can_access_key(request.user, req.key),
+        }
+        for req in requests
+    ]
+
+    return render(request, 'transfer_request.html', {'request_items': request_items})
 
 @login_required
 @require_POST
@@ -229,6 +282,15 @@ def approve_transfer_request(request, request_id):
 
     if transfer_request.to_user_id != request.user.id:
         messages.error(request, "Цей запит адресований не вам.")
+        return redirect('incoming_transfers')
+
+    if not user_can_access_key(request.user, transfer_request.key):
+        transfer_request.is_expired = True
+        transfer_request.save()
+        messages.error(
+            request,
+            "У вас немає доступу до цієї аудиторії — прийняти передачу неможливо.",
+        )
         return redirect('incoming_transfers')
 
     if transfer_request.is_valid():
@@ -268,7 +330,11 @@ def reject_transfer_request(request, request_id):
 
 @login_required
 def free_keys(request):
-    free_keys = Key.objects.filter(status="free").order_by("auditory")
+    free_keys = (
+        keys_queryset_for_user(request.user)
+        .filter(status="free")
+        .order_by("auditory")
+    )
     query = request.GET.get("q", "").strip()
     if query:
         free_keys = free_keys.filter(auditory__icontains=query)
@@ -279,6 +345,7 @@ def free_keys(request):
             "free_keys": free_keys,
             "query": query,
             "free_keys_count": free_keys.count(),
+            "has_any_access": user_has_any_access(request.user),
         },
     )
 
@@ -306,6 +373,10 @@ def profile_edit(request):
 @require_POST
 def take_key_request(request, key_id):
     key = get_object_or_404(Key, id=key_id)
+
+    if not user_can_access_key(request.user, key):
+        messages.error(request, "У вас немає доступу до цього ключа.")
+        return _redirect_after_form(request)
 
     if key.status != "free":
         messages.error(request, "Цей ключ недоступний для запиту на видачу.")
@@ -406,6 +477,12 @@ def approve_key_request(request, request_id):
 
     if key_request.is_valid():
         key = key_request.key
+        if not user_can_access_key(key_request.user, key):
+            messages.error(
+                request,
+                f"Користувач більше не має доступу до аудиторії {key.auditory}.",
+            )
+            return redirect("admin_requests")
         try:
             key.take_key(key_request.user)
             key_request.is_approved = True
@@ -567,19 +644,38 @@ def admin_user_edit(request, user_id):
     target = get_object_or_404(User, id=user_id)
     is_self = target.id == request.user.id
 
+    def _render(extra=None):
+        context = {
+            "target": target,
+            "is_self": is_self,
+            "keys_held": keys_held_by_user(target),
+            "can_edit_staff": request.user.is_superuser,
+            "show_access_controls": not is_self and not target.is_staff,
+        }
+        if context["show_access_controls"]:
+            context.update(
+                user_access_form_context(
+                    target,
+                    group_ids=extra.get("group_ids") if extra else None,
+                    extra_key_ids=extra.get("extra_key_ids") if extra else None,
+                )
+            )
+        return render(request, "admin_user_edit.html", context)
+
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
         surname = request.POST.get("surname", "").strip()
         email = request.POST.get("email", "").strip().lower()
         password = request.POST.get("password", "").strip()
+        group_ids, extra_key_ids = parse_user_access_post(request)
 
         if not name or not surname or not email:
             messages.error(request, "Ім’я, прізвище та email обов’язкові.")
-            return redirect("admin_user_edit", user_id=target.id)
+            return _render({"group_ids": group_ids, "extra_key_ids": extra_key_ids})
 
         if User.objects.filter(email=email).exclude(pk=target.pk).exists():
             messages.error(request, "Користувач з таким email уже існує.")
-            return redirect("admin_user_edit", user_id=target.id)
+            return _render({"group_ids": group_ids, "extra_key_ids": extra_key_ids})
 
         target.name = name
         target.surname = surname
@@ -588,22 +684,150 @@ def admin_user_edit(request, user_id):
         if password:
             target.set_password(password)
 
+        will_be_staff = target.is_staff
         if not is_self:
             target.is_active = request.POST.get("is_active") == "on"
             if request.user.is_superuser:
-                target.is_staff = request.POST.get("is_staff") == "on"
+                will_be_staff = request.POST.get("is_staff") == "on"
+                target.is_staff = will_be_staff
 
         target.save()
+
+        if not is_self and not will_be_staff:
+            save_user_access(target, group_ids, extra_key_ids)
+
         messages.success(request, f"Дані користувача {target} оновлено.")
         return redirect("admin_user_list")
 
+    return _render()
+
+def _parse_access_group_form(request):
+    name = request.POST.get("name", "").strip()
+    key_ids = []
+    user_ids = []
+    for raw_id in request.POST.getlist("keys"):
+        try:
+            key_ids.append(int(raw_id))
+        except (TypeError, ValueError):
+            continue
+    for raw_id in request.POST.getlist("users"):
+        try:
+            user_ids.append(int(raw_id))
+        except (TypeError, ValueError):
+            continue
+    return name, key_ids, user_ids
+
+
+def _access_group_form_context(*, group, is_create, key_ids=None, user_ids=None):
+    if key_ids is not None:
+        selected_key_ids = set(key_ids)
+    elif group is None:
+        selected_key_ids = set()
+    else:
+        selected_key_ids = set(group.keys.values_list("pk", flat=True))
+
+    if user_ids is not None:
+        selected_user_ids = set(user_ids)
+    elif group is None:
+        selected_user_ids = set()
+    else:
+        selected_user_ids = set(group.members.values_list("pk", flat=True))
+    return {
+        "group": group,
+        "is_create": is_create,
+        "all_keys": Key.objects.order_by("auditory"),
+        "all_users": User.objects.order_by("surname", "name", "email"),
+        "selected_key_ids": selected_key_ids,
+        "selected_user_ids": selected_user_ids,
+    }
+
+def _render_access_group_form(request, *, group, is_create, key_ids=None, user_ids=None):
     return render(
         request,
-        "admin_user_edit.html",
-        {
-            "target": target,
-            "is_self": is_self,
-            "keys_held": keys_held_by_user(target),
-            "can_edit_staff": request.user.is_superuser,
-        },
+        "admin_access_group_form.html",
+        _access_group_form_context(
+            group=group,
+            is_create=is_create,
+            key_ids=key_ids,
+            user_ids=user_ids,
+        ),
     )
+
+def _save_access_group_members(group, key_ids, user_ids):
+    valid_keys = Key.objects.filter(pk__in=key_ids)
+    valid_users = User.objects.filter(pk__in=user_ids)
+    group.keys.set(valid_keys)
+    group.members.set(valid_users)
+
+@staff_member_required
+def admin_access_group_list(request):
+    groups = build_access_groups_queryset()
+    return render(
+        request,
+        "admin_access_group_list.html",
+        {"groups": groups},
+    )
+
+@staff_member_required
+def admin_access_group_create(request):
+    if request.method == "POST":
+        name, key_ids, user_ids = _parse_access_group_form(request)
+        if not name:
+            messages.error(request, "Назву групи обов’язково вказати.")
+            return _render_access_group_form(
+                request, group=None, is_create=True, key_ids=key_ids, user_ids=user_ids
+            )
+
+        if AccessGroup.objects.filter(name=name).exists():
+            messages.error(request, "Група з такою назвою вже існує.")
+            return _render_access_group_form(
+                request, group=None, is_create=True, key_ids=key_ids, user_ids=user_ids
+            )
+
+        group = AccessGroup.objects.create(name=name)
+        _save_access_group_members(group, key_ids, user_ids)
+        messages.success(request, f"Групу «{group.name}» створено.")
+        return redirect("admin_access_group_list")
+
+    return _render_access_group_form(request, group=None, is_create=True)
+
+
+@staff_member_required
+def admin_access_group_edit(request, group_id):
+    group = get_object_or_404(AccessGroup, id=group_id)
+
+    if request.method == "POST":
+        if request.POST.get("action") == "delete":
+            name = group.name
+            group.delete()
+            messages.success(request, f"Групу «{name}» видалено.")
+            return redirect("admin_access_group_list")
+
+        name, key_ids, user_ids = _parse_access_group_form(request)
+        if not name:
+            messages.error(request, "Назву групи обов’язково вказати.")
+            return _render_access_group_form(
+                request,
+                group=group,
+                is_create=False,
+                key_ids=key_ids,
+                user_ids=user_ids,
+            )
+
+        if AccessGroup.objects.filter(name=name).exclude(pk=group.pk).exists():
+            messages.error(request, "Група з такою назвою вже існує.")
+            return _render_access_group_form(
+                request,
+                group=group,
+                is_create=False,
+                key_ids=key_ids,
+                user_ids=user_ids,
+            )
+
+        group.name = name
+        group.save()
+        _save_access_group_members(group, key_ids, user_ids)
+        messages.success(request, f"Групу «{group.name}» оновлено.")
+        return redirect("admin_access_group_list")
+
+    return _render_access_group_form(request, group=group, is_create=False)

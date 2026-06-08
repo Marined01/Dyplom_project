@@ -1,66 +1,118 @@
 # Запуск через Docker Compose
 
-Один файл описує **два сервіси**: база PostgreSQL і Django. Команда `docker compose up` піднімає обидва.
+Два сервіси в одному `docker-compose.yml`: **PostgreSQL** і **Django**.
 
-## Що потрібно на комп’ютері
-
-1. [Docker Desktop](https://www.docker.com/products/docker-desktop/) (macOS / Windows / Linux)
-2. У терміналі з папки проєкту:
-
-```bash
-cp .env.example .env
-docker compose up --build
-```
-
-3. Відкрийте в браузері: **http://127.0.0.1:8000/**
-
-Зупинити: `Ctrl+C`, або в іншому терміналі `docker compose down`.
+Загальний опис проєкту та локальний запуск без Docker — у [README.md](README.md).
 
 ---
 
-## Що відбувається під капотом
+## Що потрібно
+
+1. [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+2. Файл `.env` у корені (шаблон: `.env.example`)
+
+---
+
+## Перший запуск
+
+### 1. Змінні середовища
+
+```bash
+cp .env.example .env
+```
+
+Обов’язково **`SECRET_KEY`**. Генерація:
+
+```bash
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+Опційно для автоматичного bootstrap:
+
+```env
+ADMIN_EMAIL=admin@uni.ua
+ADMIN_PASSWORD=your-secure-password
+ADMIN_NAME=Admin
+ADMIN_SURNAME=User
+SEED_AUDITORIES=101,102,103,201
+```
+
+### 2. Запуск
+
+```bash
+docker compose up --build
+```
+
+| Що | Адреса |
+|----|--------|
+| Застосунок | [http://127.0.0.1:8000](http://127.0.0.1:8000) |
+| PostgreSQL з хоста (опційно) | `localhost:5433` — логін/БД з `.env` |
+
+Зупинити: `Ctrl+C` або `docker compose down`. Через UI: Docker Desktop → Containers → **Stop**.
+
+---
+
+## Що відбувається при старті
 
 | Сервіс | Роль |
 |--------|------|
 | **db** | PostgreSQL 16, дані в томі `postgres_data` |
-| **web** | Django: чекає БД → `migrate` → `runserver` |
+| **web** | `docker/entrypoint.sh` → очікування БД → `migrate` → `ensure_admin` → `seed_auditories` → `runserver` |
 
-Сайт звертається до БД за ім’ям **`db`** (внутрішня мережа Docker), не `localhost`.
+Контейнер **web** підключається до БД за іменем **`db`** (внутрішня мережа Docker), не `localhost`.
 
----
+### `ensure_admin`
 
-## Перший запуск: адміністратор
+Якщо в `.env` задані `ADMIN_EMAIL` / `ADMIN_PASSWORD` і користувача з таким email **ще немає** — створюється staff/superuser. Якщо вже є — без змін.
 
-У БД ще немає користувачів. Створіть staff (у **новому** терміналі, поки контейнери працюють):
+### `seed_auditories`
+
+Якщо задано `SEED_AUDITORIES=101,102,...` — створюються вільні ключі для цих номерів (без дублікатів).
+
+Якщо bootstrap не використовуєте:
 
 ```bash
 docker compose exec web python manage.py createsuperuser
 ```
 
-Далі увійдіть на сайт з цим email і паролем.
+Додати ключі вручну — через Django shell (див. [README.md](README.md) або `coursework/models.py`).
 
 ---
 
 ## Корисні команди
 
 ```bash
-# Запуск у фоні
+# Фоновий запуск
 docker compose up -d --build
 
 # Логи
 docker compose logs -f web
 
-# Зупинити і прибрати контейнери (дані БД залишаться у volume)
+# Зупинити (дані БД зберігаються)
 docker compose down
 
 # Зупинити і видалити дані БД
 docker compose down -v
 
-# Shell у контейнері Django
+# Django shell
 docker compose exec web python manage.py shell
+
+# Тести
+docker compose exec web python manage.py test coursework --settings=config.settings_test -v 2
 ```
 
 ---
-## Локальна розробка без Docker
 
-Як раніше: venv + Postgres на `localhost`. У `config/settings.py` залишені значення за замовчуванням для вашої локальної БД, якщо змінні середовища не задані.
+## Після запуску
+
+1. Увійти як адмін (`ADMIN_EMAIL` з `.env`) або `createsuperuser`.
+2. Користувач реєструється на `/registration/` — **без доступу** до аудиторій.
+3. Адмін призначає групи на `/groups/` або винятки на `/users/`.
+
+Покроковий сценарій ручної перевірки: **[docs/testing.md](docs/testing.md)**
+
+---
+
+## Примітка
+
+У контейнері — **сервер розробки** Django (`runserver`), достатній для демонстрації та розробки.

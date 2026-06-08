@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Групи доступу{% endblock %}
+{% block content %}
+  <div class="page-head page-head--with-actions">
+    <div>
+      <h1>Групи доступу</h1>
+      <p>Набори аудиторій для користувачів. Без групи користувач не має доступу до ключів.</p>
+    </div>
+    <a href="{% url 'admin_access_group_create' %}" class="btn">Нова група</a>
+  </div>
+
+  <div class="table-wrap table-wrap--responsive">
+    <table class="data-table data-table--responsive">
+      <thead>
+        <tr>
+          <th>Назва</th>
+          <th>Аудиторій</th>
+          <th>Користувачів</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for group in groups %}
+          <tr>
+            <td data-label="Назва"><strong>{{ group.name }}</strong></td>
+            <td data-label="Аудиторій">{{ group.keys_count }}</td>
+            <td data-label="Користувачів">{{ group.members_count }}</td>
+            <td data-label="" class="data-table__actions">
+              <a href="{% url 'admin_access_group_edit' group.id %}" class="btn btn--ghost btn--sm">Редагувати</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="empty-state">
+              Груп ще немає.
+              <a href="{% url 'admin_access_group_create' %}">Створити першу групу</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

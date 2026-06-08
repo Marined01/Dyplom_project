@@ -28,6 +28,11 @@ services:
       DEBUG: ${DEBUG:-True}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
       SECRET_KEY: ${SECRET_KEY}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-}
+      ADMIN_SURNAME: ${ADMIN_SURNAME:-}
+      SEED_AUDITORIES: ${SEED_AUDITORIES:-}
     volumes:
       - .:/app
     ports:

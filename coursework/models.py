@@ -31,6 +31,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
+    access_groups = models.ManyToManyField(
+        "AccessGroup",
+        blank=True,
+        related_name="members",
+        verbose_name="Групи доступу",
+    )
+    allowed_keys = models.ManyToManyField(
+        "Key",
+        blank=True,
+        related_name="users_with_personal_access",
+        verbose_name="Додаткові аудиторії",
+    )
+
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
@@ -126,6 +139,24 @@ class Key(models.Model):
         self.holder = new_user
         self.take_key_time = timezone.now()
         self.save()
+
+
+class AccessGroup(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name="Назва групи")
+    keys = models.ManyToManyField(
+        Key,
+        blank=True,
+        related_name="access_groups",
+        verbose_name="Дозволені аудиторії",
+    )
+
+    class Meta:
+        verbose_name = "Група доступу"
+        verbose_name_plural = "Групи доступу"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
 
 
 class Key_requests(models.Model):

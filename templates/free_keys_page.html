@@ -47,8 +47,10 @@
   {% else %}
     {% if query %}
       <p class="empty-state">За номером «{{ query }}» серед вільних аудиторій нічого не знайдено. <a href="{% url 'free_keys' %}">Показати всі вільні</a>.</p>
+    {% elif not has_any_access %}
+      <p class="empty-state">У вас немає доступу до жодної аудиторії. Зверніться до адміністратора.</p>
     {% else %}
-      <p class="empty-state">Наразі немає вільних ключів.</p>
+      <p class="empty-state">Наразі немає вільних ключів серед доступних вам аудиторій.</p>
     {% endif %}
   {% endif %}
 {% endblock %}

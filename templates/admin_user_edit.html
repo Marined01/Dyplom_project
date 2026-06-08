@@ -8,69 +8,139 @@
     </p>
   </div>
 
-  <div class="admin-user-edit">
-    <section class="panel">
-      <h2 class="panel__title">Обліковий запис</h2>
-      <form method="post" class="form-stack">
-        {% csrf_token %}
-        <div class="field">
-          <label for="id_name">Ім’я</label>
-          <input id="id_name" type="text" name="name" required maxlength="100" value="{{ target.name }}">
-        </div>
-        <div class="field">
-          <label for="id_surname">Прізвище</label>
-          <input id="id_surname" type="text" name="surname" required maxlength="100" value="{{ target.surname }}">
-        </div>
-        <div class="field">
-          <label for="id_email">Email</label>
-          <input id="id_email" type="email" name="email" required value="{{ target.email }}">
-        </div>
-        <div class="field">
-          <label for="id_password">Новий пароль</label>
-          <input id="id_password" type="password" name="password" autocomplete="new-password" placeholder="Порожньо — не змінювати">
-          <p class="hint">Адмін може скинути пароль користувачу.</p>
-        </div>
+  <form method="post" class="admin-user-edit-form">
+    {% csrf_token %}
 
-        {% if not is_self %}
-          <div class="form-checks">
-            <label class="form-check">
-              <input class="form-check__input" type="checkbox" name="is_active" {% if target.is_active %}checked{% endif %}>
-              <span class="form-check__label">Обліковий запис активний (може входити)</span>
-            </label>
-            {% if can_edit_staff %}
+    <div class="admin-user-edit">
+      <section class="panel">
+        <h2 class="panel__title">Обліковий запис</h2>
+        <div class="form-stack">
+          <div class="field">
+            <label for="id_name">Ім’я</label>
+            <input id="id_name" type="text" name="name" required maxlength="100" value="{{ target.name }}">
+          </div>
+          <div class="field">
+            <label for="id_surname">Прізвище</label>
+            <input id="id_surname" type="text" name="surname" required maxlength="100" value="{{ target.surname }}">
+          </div>
+          <div class="field">
+            <label for="id_email">Email</label>
+            <input id="id_email" type="email" name="email" required value="{{ target.email }}">
+          </div>
+          <div class="field">
+            <label for="id_password">Новий пароль</label>
+            <input id="id_password" type="password" name="password" autocomplete="new-password" placeholder="Порожньо — не змінювати">
+            <p class="hint">Адмін може скинути пароль користувачу.</p>
+          </div>
+
+          {% if not is_self %}
+            <div class="form-checks">
               <label class="form-check">
-                <input class="form-check__input" type="checkbox" name="is_staff" {% if target.is_staff %}checked{% endif %}>
-                <span class="form-check__label">Персонал (доступ до адмін-розділу)</span>
+                <input class="form-check__input" type="checkbox" name="is_active" {% if target.is_active %}checked{% endif %}>
+                <span class="form-check__label">Обліковий запис активний</span>
               </label>
+              {% if can_edit_staff %}
+                <label class="form-check">
+                  <input class="form-check__input" type="checkbox" name="is_staff" {% if target.is_staff %}checked{% endif %}>
+                  <span class="form-check__label">Персонал</span>
+                </label>
+              {% endif %}
+            </div>
+          {% else %}
+            <p class="hint">Це ваш обліковий запис — статус і роль тут не змінюються.</p>
+          {% endif %}
+
+          {% if not is_self and target.is_staff %}
+            <p class="hint">Персонал має доступ до всіх аудиторій — групи доступу не застосовуються.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel__title">Ключі на руках ({{ keys_held|length }})</h2>
+        {% if keys_held %}
+          <ul class="admin-user-keys">
+            {% for key in keys_held %}
+              <li>
+                <strong>Ауд. {{ key.auditory }}</strong>
+                {% if key.held_duration_display %}
+                  <span class="card__meta">· {{ key.held_duration_display }}</span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+          <p class="hint">
+            <a href="{% url 'key_list' %}?q={{ target.email }}">Знайти в таблиці ключів</a>
+          </p>
+        {% else %}
+          <p class="empty-state">Зараз ключів не тримає.</p>
+        {% endif %}
+      </section>
+    </div>
+
+    {% if show_access_controls %}
+      <section class="panel admin-user-access">
+        <h2 class="panel__title">Доступ до аудиторій</h2>
+        <p class="hint admin-user-access__lead">
+          Без груп і без додаткових аудиторій користувач не має доступу до ключів.
+        </p>
+        <div class="admin-user-access__grid">
+          <div class="admin-user-access__col">
+            <span class="field-label">Групи доступу</span>
+            {% if all_access_groups %}
+              <div class="form-checks checkbox-list checkbox-list--compact">
+                {% for group in all_access_groups %}
+                  <label class="form-check">
+                    <input
+                      class="form-check__input"
+                      type="checkbox"
+                      name="access_groups"
+                      value="{{ group.id }}"
+                      {% if group.id in selected_group_ids %}checked{% endif %}
+                    >
+                    <span class="form-check__label">{{ group.name }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="empty-state">
+                Груп ще немає.
+                <a href="{% url 'admin_access_group_create' %}">Створити групу</a>
+              </p>
             {% endif %}
           </div>
-        {% else %}
-          <p class="hint">Це ваш обліковий запис — статус і роль тут не змінюються.</p>
-        {% endif %}
 
-        <button type="submit" class="btn">Зберегти</button>
-      </form>
-    </section>
+          <div class="admin-user-access__col">
+            <span class="field-label">Додаткові аудиторії</span>
+            {% if all_keys_for_access %}
+              <div class="form-checks checkbox-list checkbox-list--compact">
+                {% for key in all_keys_for_access %}
+                  <label class="form-check">
+                    <input
+                      class="form-check__input"
+                      type="checkbox"
+                      name="allowed_keys"
+                      value="{{ key.id }}"
+                      {% if key.id in selected_extra_key_ids %}checked{% endif %}
+                    >
+                    <span class="form-check__label">
+                      Ауд. {{ key.auditory }}
+                      <span class="card__meta">· {{ key.get_status_display }}</span>
+                    </span>
+                  </label>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="empty-state">У системі ще немає ключів.</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    {% endif %}
 
-    <section class="panel">
-      <h2 class="panel__title">Ключі на руках ({{ keys_held|length }})</h2>
-      {% if keys_held %}
-        <ul class="admin-user-keys">
-          {% for key in keys_held %}
-            <li>
-              <strong>Ауд. {{ key.auditory }}</strong>
-              {% if key.held_duration_display %}
-                <span class="card__meta">· {{ key.held_duration_display }}</span>
-              {% endif %}
-            </li>
-          {% endfor %}
-        </ul>
-        <p class="hint">
-          <a href="{% url 'key_list' %}?q={{ target.email }}">Знайти в таблиці ключів</a>
-        </p>
-      {% else %}
-        <p class="empty-state">Зараз ключів не тримає.</p>
-      {% endif %}
-    </section>
-  </div>
+    <div class="admin-user-edit-form__actions">
+      <button type="submit" class="btn">Зберегти</button>
+      <a href="{% url 'admin_user_list' %}" class="btn btn--secondary">Скасувати</a>
+    </div>
+  </form>
 {% endblock %}
